@@ -1,7 +1,3 @@
-# generic-info
-just some generic info shared by many of our projects
-
-# build status
 | project | status |
 |---------|--------|
 | generic-info | [![Actions Status](https://github.com/ModelingValueGroup/generic-info/workflows/check/badge.svg)](https://github.com/ModelingValueGroup/generic-info/actions) |
