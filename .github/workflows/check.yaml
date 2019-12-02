@@ -11,6 +11,11 @@ jobs:
       - name: "attach head"
         run: git checkout "${GITHUB_REF#refs/heads/}"
 
+      - name: "setup JDK"
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
       - name: "get buildTools"
         uses: ModelingValueGroup/buildTools@master
         with:
