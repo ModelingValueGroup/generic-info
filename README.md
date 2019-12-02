@@ -1,4 +1,4 @@
-| project | status |
+| repos | status |
 |---------|--------|
 | generic-info | [![Actions Status](https://github.com/ModelingValueGroup/generic-info/workflows/check/badge.svg)](https://github.com/ModelingValueGroup/generic-info/actions) |
 |upload-maven-package-action|[![Actions Status](https://github.com/ModelingValueGroup/upload-maven-package-action/workflows/test/badge.svg)](https://github.com/ModelingValueGroup/upload-maven-package-action/actions)|
