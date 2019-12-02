@@ -55,37 +55,32 @@ genLastCommitBadge() {
     genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo?style=plastic"
 }
 genRepo() {
-    local   repo="$1"; shift
-    local action="$1"; shift
+    local category="$1"; shift
+    local     repo="$1"; shift
+    local   action="$1"; shift
 
     local col2="$(genLink "!$(genStatusBadge     "$repo" "$action")" "https://github.com/$MVG/$repo/actions")"
     local col3="$(genLink "!$(genLastCommitBadge "$repo"          )" "https://github.com/$MVG/$repo"        )"
 
-    echo "| $repo | $col2 | $col3 |"
+    echo "| $category | $repo | $col2 | $col3 |"
 }
 gen() {
+    local category="$1"; shift
+
     for i in "$@"; do
         if [[ "${r:-}" == "" ]]; then
             r="$i"
         else
-            genRepo "$r" "$i"
+            genRepo "$category" "$r" "$i"
             r=
+            category=
         fi
     done
 }
 cat <<EOF
-### dclare
-| repos | build status | last commit |
-|-------|--------------|-------------|
-$(gen "${repoListDclare[@]}")
-
-### examples
-| repos | build status | last commit |
-|-------|--------------|-------------|
-$(gen "${repoListExamples[@]}")
-
-### support
-| repos | build status | last commit |
-|-------|--------------|-------------|
-$(gen "${repoListSupport[@]}")
+|   | repos | build status | last commit |
+|---|-------|--------------|-------------|
+$(gen dclare   "${repoListDclare[@]}")
+$(gen examples "${repoListExamples[@]}")
+$(gen support  "${repoListSupport[@]}")
 EOF
