@@ -26,6 +26,7 @@ jobs:
           . <(java -jar buildTools.jar)
           correctEols
           correctHeaders header
+          ./README-generator.sh >README.md
 
       - name: "push changes back to github"
         run:  |
