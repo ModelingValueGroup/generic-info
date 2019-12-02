@@ -18,11 +18,11 @@ set -euo pipefail
 
 MVG=ModelingValueGroup
 repoList=(
-    generic-info
-    upload-maven-package-action
-    buildTools
-    immutable-collections
-    dclare
+    generic-info                    check
+    upload-maven-package-action     test
+    buildTools                      build%20and%20test
+    immutable-collections           build%20and%20test
+    dclare                          build%20and%20test
 )
 genLink() {
     local name="$1"; shift
@@ -31,9 +31,10 @@ genLink() {
     printf "[%s](%s)" "$name" "$url"
 }
 genStatusBadge() {
-    local repo="$1"; shift
+    local   repo="$1"; shift
+    local action="$1"; shift
 
-    genLink "Actions Status" "https://github.com/$MVG/$repo/workflows/check/badge.svg"
+    genLink "Actions Status" "https://github.com/$MVG/$repo/workflows/$action/badge.svg"
 }
 genLastCommitBadge() {
     local repo="$1"; shift
@@ -41,10 +42,11 @@ genLastCommitBadge() {
     genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo?style=plastic"
 }
 genRepo() {
-    local repo="$1"; shift
+    local   repo="$1"; shift
+    local action="$1"; shift
 
-    local col2="$(genLink "!$(genStatusBadge "$repo")" "https://github.com/$MVG/$repo/actions")"
-    local col3="$(genLink "!$(genLastCommitBadge "$repo")" "https://github.com/$MVG/$repo")"
+    local col2="$(genLink "!$(genStatusBadge     "$repo" "$action")" "https://github.com/$MVG/$repo/actions")"
+    local col3="$(genLink "!$(genLastCommitBadge "$repo"          )" "https://github.com/$MVG/$repo"        )"
 
     echo "| $repo | $col2 | $col3 |"
 }
@@ -52,8 +54,13 @@ cat <<EOF
 | repos | build status | last commit |
 |-------|--------------|-------------|
 $(
-    for r in "${repoList[@]}"; do
-        genRepo "$r"
+    for i in "${repoList[@]}"; do
+        if [[ "$r" == "" ]]; then
+            r="$i"
+        else
+            genRepo "$r" "$i"
+            r=
+        fi
     done
 )
 |-------|--------------|-------------|
