@@ -1,7 +1,7 @@
-| repos | status |
-|---------|--------|
-|generic-info|[![Actions Status](https://github.com/ModelingValueGroup/generic-info/workflows/check/badge.svg)](https://github.com/ModelingValueGroup/generic-info/actions)|
-|upload-maven-package-action|[![Actions Status](https://github.com/ModelingValueGroup/upload-maven-package-action/workflows/test/badge.svg)](https://github.com/ModelingValueGroup/upload-maven-package-action/actions)|
-|buildTools|[![Actions Status](https://github.com/ModelingValueGroup/buildTools/workflows/build%20and%20test/badge.svg)](https://github.com/ModelingValueGroup/buildTools/actions)|
-|immutable-collections|[![Actions Status](https://github.com/ModelingValueGroup/immutable-collections/workflows/build%20and%20test/badge.svg)](https://github.com/ModelingValueGroup/immutable-collections/actions)|
-|dclare|[![Actions Status](https://github.com/ModelingValueGroup/dclare/workflows/build%20and%20test/badge.svg)](https://github.com/ModelingValueGroup/dclare/actions)|
+| repos | status |last|
+|---------|--------|-----|
+|generic-info|[![Actions Status](https://github.com/ModelingValueGroup/generic-info/workflows/check/badge.svg)](https://github.com/ModelingValueGroup/generic-info/actions)|![GitHub last commit](https://img.shields.io/github/last-commit/ModelingValueGroup/generic-info?style=for-the-badge)|
+|upload-maven-package-action|[![Actions Status](https://github.com/ModelingValueGroup/upload-maven-package-action/workflows/test/badge.svg)](https://github.com/ModelingValueGroup/upload-maven-package-action/actions)|![GitHub last commit](https://img.shields.io/github/last-commit/ModelingValueGroup/upload-maven-package-action?style=for-the-badge)|
+|buildTools|[![Actions Status](https://github.com/ModelingValueGroup/buildTools/workflows/build%20and%20test/badge.svg)](https://github.com/ModelingValueGroup/buildTools/actions)|![GitHub last commit](https://img.shields.io/github/last-commit/ModelingValueGroup/buildTools?style=for-the-badge)|
+|immutable-collections|[![Actions Status](https://github.com/ModelingValueGroup/immutable-collections/workflows/build%20and%20test/badge.svg)](https://github.com/ModelingValueGroup/immutable-collections/actions)|![GitHub last commit](https://img.shields.io/github/last-commit/ModelingValueGroup/immutable-collections?style=for-the-badge)|
+|dclare|[![Actions Status](https://github.com/ModelingValueGroup/dclare/workflows/build%20and%20test/badge.svg)](https://github.com/ModelingValueGroup/dclare/actions)|![GitHub last commit](https://img.shields.io/github/last-commit/ModelingValueGroup/dclare?style=for-the-badge)|
