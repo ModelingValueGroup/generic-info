@@ -1,0 +1,7 @@
+name: 'generic-info'
+description: 'get some generic info for many of our projects'
+author: 'Tom Brus'
+
+runs:
+  using: 'node12'
+  main : 'entrypoint.js'
