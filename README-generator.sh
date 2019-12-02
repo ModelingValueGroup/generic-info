@@ -79,12 +79,12 @@ cat <<EOF
 |-------|--------------|-------------|
 $(gen "${repoListDclare[@]}")
 
-### support
+### examples
 | repos | build status | last commit |
 |-------|--------------|-------------|
 $(gen "${repoListExamples[@]}")
 
-# examples
+### support
 | repos | build status | last commit |
 |-------|--------------|-------------|
 $(gen "${repoListSupport[@]}")
