@@ -74,12 +74,12 @@ gen() {
     done
 }
 cat <<EOF
-# dclare
+### dclare
 | repos | build status | last commit |
 |-------|--------------|-------------|
 $(gen "${repoListDclare[@]}")
 
-# support
+### support
 | repos | build status | last commit |
 |-------|--------------|-------------|
 $(gen "${repoListExamples[@]}")
