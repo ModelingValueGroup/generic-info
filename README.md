@@ -1,4 +1,4 @@
-| repos | status |last|
+| repos | build status |last commit|
 |---------|--------|-----|
 |generic-info|[![Actions Status](https://github.com/ModelingValueGroup/generic-info/workflows/check/badge.svg)](https://github.com/ModelingValueGroup/generic-info/actions)|![GitHub last commit](https://img.shields.io/github/last-commit/ModelingValueGroup/generic-info?style=plastic)|
 |upload-maven-package-action|[![Actions Status](https://github.com/ModelingValueGroup/upload-maven-package-action/workflows/test/badge.svg)](https://github.com/ModelingValueGroup/upload-maven-package-action/actions)|![GitHub last commit](https://img.shields.io/github/last-commit/ModelingValueGroup/upload-maven-package-action?style=plastic)|
