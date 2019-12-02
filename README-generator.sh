@@ -22,6 +22,8 @@ MVG=ModelingValueGroup
 repoListDclare=(
     immutable-collections           build%20and%20test
     dclare                          build%20and%20test
+    dclareForJava                   build%20and%20test
+    dclareForMPS                    build%20and%20test
 )
 repoListSupport=(
     generic-info                    check
