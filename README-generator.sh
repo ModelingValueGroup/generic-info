@@ -25,6 +25,12 @@ repoListDclare=(
     dclareForJava                   build%20and%20test
     dclareForMPS                    build%20and%20test
 )
+repoListExamples=(
+    ex-FlattenAndCopy               notYetImplemented
+    ex-NiamToOO                     notYetImplemented
+    ex-EntityClassJava              notYetImplemented
+    ex-Sudoku                       notYetImplemented
+)
 repoListSupport=(
     generic-info                    check
     upload-maven-package-action     test
@@ -74,6 +80,11 @@ cat <<EOF
 $(gen "${repoListDclare[@]}")
 
 # support
+| repos | build status | last commit |
+|-------|--------------|-------------|
+$(gen "${repoListExamples[@]}")
+
+# examples
 | repos | build status | last commit |
 |-------|--------------|-------------|
 $(gen "${repoListSupport[@]}")
