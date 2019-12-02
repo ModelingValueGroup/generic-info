@@ -55,7 +55,7 @@ cat <<EOF
 |-------|--------------|-------------|
 $(
     for i in "${repoList[@]}"; do
-        if [[ "$r" == "" ]]; then
+        if [[ "${r:-}" == "" ]]; then
             r="$i"
         else
             genRepo "$r" "$i"
