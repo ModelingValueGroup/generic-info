@@ -16,14 +16,19 @@
 
 set -euo pipefail
 
+###########################################################################################################################
 MVG=ModelingValueGroup
-repoList=(
-    generic-info                    check
-    upload-maven-package-action     test
-    buildTools                      build%20and%20test
+###########################################################################################################################
+repoListDclare=(
     immutable-collections           build%20and%20test
     dclare                          build%20and%20test
 )
+repoListSupport=(
+    generic-info                    check
+    upload-maven-package-action     test
+    buildTools                      build%20and%20test
+)
+###########################################################################################################################
 genLink() {
     local name="$1"; shift
     local  url="$1"; shift
@@ -50,11 +55,8 @@ genRepo() {
 
     echo "| $repo | $col2 | $col3 |"
 }
-cat <<EOF
-| repos | build status | last commit |
-|-------|--------------|-------------|
-$(
-    for i in "${repoList[@]}"; do
+gen() {
+    for i in "$@"; do
         if [[ "${r:-}" == "" ]]; then
             r="$i"
         else
@@ -62,5 +64,15 @@ $(
             r=
         fi
     done
-)
+}
+cat <<EOF
+# dclare
+| repos | build status | last commit |
+|-------|--------------|-------------|
+$(gen "${repoListDclare[@]}")
+
+# support
+| repos | build status | last commit |
+|-------|--------------|-------------|
+$(gen "${repoListSupport[@]}")
 EOF
