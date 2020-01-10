@@ -14,59 +14,29 @@
 ##     Arjan Kok, Carel Bast                                                                                           ~
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-set -euo pipefail
-
 ###########################################################################################################################
-. ./info.sh
+export MVG=ModelingValueGroup
 ###########################################################################################################################
-genLink() {
-    local name="$1"; shift
-    local  url="$1"; shift
-
-    printf "[%s](%s)" "$name" "$url"
-}
-genStatusBadge() {
-    local   repo="$1"; shift
-    local action="$1"; shift
-
-    genLink "Actions Status" "https://github.com/$MVG/$repo/workflows/$action/badge.svg"
-}
-genLastCommitBadge() {
-    local repo="$1"; shift
-
-    genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo?style=plastic"
-}
-genRepo() {
-    local category="$1"; shift
-    local     repo="$1"; shift
-    local   action="$1"; shift
-
-    local col2 col3
-    col2="$(genLink "!$(genStatusBadge     "$repo" "$action")" "https://github.com/$MVG/$repo/actions")"
-    col3="$(genLink "!$(genLastCommitBadge "$repo"          )" "https://github.com/$MVG/$repo"        )"
-
-    echo "| $category | $repo | $col2 | $col3 |"
-}
-gen() {
-    local category="$1"; shift
-
-    local i r
-    for i in "$@"; do
-        if [[ "${r:-}" == "" ]]; then
-            r="$i"
-        else
-            genRepo "$category" "$r" "$i"
-            r=
-            category=
-        fi
-    done
-}
-cat <<EOF
-|       | repos | build status | last commit |
-|-------|-------|--------------|-------------|
-$(gen dclare   "${repoListDclare[@]}")
-|       |       |              |             |
-$(gen examples "${repoListExamples[@]}")
-|       |       |              |             |
-$(gen support  "${repoListSupport[@]}")
-EOF
+export repoListDclare=(
+    immutable-collections           build%20and%20test
+    dclare                          build%20and%20test
+    dclareForJava                   build%20and%20test
+    dclareForMPS                    build%20and%20test
+)
+export repoListExamples=(
+    ex-FlattenAndCopy               notYetImplemented
+    ex-NiamToOO                     notYetImplemented
+    ex-EntityClassJava              notYetImplemented
+    ex-Sudoku                       notYetImplemented
+)
+export repoListSupport=(
+    generic-info                    check
+    upload-maven-package-action     test
+    buildTools                      build%20and%20test
+)
+export repoList=(
+    "${repoListDclare[@]}"
+    "${repoListExamples[@]}"
+    "${repoListSupport[@]}"
+)
+###########################################################################################################################
