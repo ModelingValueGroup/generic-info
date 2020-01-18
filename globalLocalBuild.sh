@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## (C) Copyright 2018-2019 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 ##                                                                                                                     ~
@@ -51,7 +51,7 @@ projectInfo() {
         else
             version="-"
         fi
-        printf "   %-30s %-10s %4s %10s\n" "$repo" "$branch" "$num" "$version"
+        printf "   %-30s %-16s %4s %10s\n" "$repo" "$branch" "$num" "$version"
     )
 }
 isAllUptodate() {
@@ -115,12 +115,16 @@ versionConsistency() {
         if [[ -f "../$repo/project.sh" ]]; then
             . "../$repo/project.sh"
             for dep in "${dependencies[@]}"; do
-                read a g v e f <<<"$dep"
-                if [[ "${info[$g]:-}" != "" ]]; then
-                    if [[ "$v" != "${info[$g]:-}" ]]; then
-                        printf "       %-30s <- %-30s   =>  but working on %s\n" "$repo" "$g:$v" "${info[$g]:-}"
-                    else
-                        printf "       %-30s <- %-30s  (ok)\n" "$repo" "$g:$v"
+                if [[ "$dep" =~ jars@* ]]; then
+                    : # ignore jars dependencies here
+                else
+                    read a g v e f <<<"$dep"
+                    if [[ "${info[$g]:-}" != "" ]]; then
+                        if [[ "$v" != "${info[$g]:-}" ]]; then
+                            printf "       %-30s <- %-30s   =>  but working on %s\n" "$repo" "$g:$v" "${info[$g]:-}"
+                        else
+                            printf "       %-30s <- %-30s  (ok)\n" "$repo" "$g:$v"
+                        fi
                     fi
                 fi
             done | sort
@@ -128,6 +132,18 @@ versionConsistency() {
     }
     echo "#### checking dependencies:"
     forAllProjects check
+}
+fillLibFolder() {
+    local repo="$1"; shift
+
+    (   cd "../$repo"
+        if [[ -f pom.xml ]]; then
+            rm -rf lib
+            mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib
+            mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc
+            mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources
+        fi
+    )
 }
 main() {
     . ./info.sh
@@ -143,5 +159,8 @@ main() {
 
     echo "###################### version consistency:"
     versionConsistency
+
+    echo "###################### fill lib folders:"
+    #forAllProjects fillLibFolder
 }
 main
