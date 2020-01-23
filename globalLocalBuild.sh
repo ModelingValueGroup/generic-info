@@ -30,20 +30,27 @@ forAllProjects() {
         fi
     done
 }
-cloneProject() {
+numLines() {
+    wc -l | sed 's/ //g;s/^0$/-/'
+}
+prepProject() {
     local repo="$1"; shift
 
     if [[ ! -d "../$repo" ]]; then
-        echo "###### clone $repo..."
-        git clone "https://github.com/ModelingValueGroup/$repo.git" ../$repo >/dev/null
+        printf "   %-32s cloning...\n" "$repo"
+        git clone "https://github.com/ModelingValueGroup/$repo.git" ../$repo 2>&1 >/dev/null
+    else
+        printf "   %-32s fetching...\n" "$repo"
+        (cd "../$repo"; git fetch origin 2>&1 >/dev/null)
     fi
 }
 projectInfo() {
     local repo="$1"; shift
 
     (   cd ../$repo
-        local branch="$(git status| egrep "^On branch " | sed 's/On branch //')"
-        local    num="$(git status | egrep '^\t(new file|modified):   ' | wc -l | sed 's/ //g;s/^0$/-/')"
+        local  branch="$(git status | egrep "^On branch "                | sed 's/On branch //')"
+        local   dirty="$(git status | egrep '^\t(new file|modified):   ' | numLines)"
+        local updates="$(git log HEAD..origin/$branch --oneline          | numLines)"
         local version
         if [[ -f "../$repo/project.sh" ]]; then
             . "../$repo/project.sh"
@@ -51,41 +58,8 @@ projectInfo() {
         else
             version="-"
         fi
-        printf "   %-30s %-16s %4s %10s\n" "$repo" "$branch" "$num" "$version"
+        printf "   %-30s %-16s %6s %6s %10s\n" "$repo" "$branch" "$updates" "$dirty" "$version"
     )
-}
-isAllUptodate() {
-    isUptodate "jdclare/org.modelingvalue.collections/src"            "immutable-collections/immutable-collections/src" | fgrep -v 'StructGenerator.java'
-    isUptodate "jdclare/org.modelingvalue.collections.test/src"       "immutable-collections/immutable-collections/tst"
-
-    isUptodate "jdclare/org.modelingvalue.dclare/src"                 "dclare/dclare/src"
-    isUptodate "jdclare/org.modelingvalue.dclare.test/src"            "dclare/dclare/tst"
-
-    isUptodate "jdclare/org.modelingvalue.jdclare/src"                "dclareForJava/dclareForJava/src"
-    isUptodate "jdclare/org.modelingvalue.jdclare.test/src"           "dclareForJava/dclareForJava/tst"
-
-    isUptodate "jdclare/org.modelingvalue.jdclare.examples/src"       "dclareForJava/examples/tst"                      | egrep -v ' (workbench|swing)$'
-    isUptodate "jdclare/org.modelingvalue.jdclare.swing.examples/src" "dclareForJava/examples/tst"                      | egrep -v ' (examples|workbench)$'
-    isUptodate "jdclare/org.modelingvalue.jdclare.workbench/src"      "dclareForJava/examples/tst"                      | egrep -v ' (examples|swing)$'
-
-    isUptodate "jdclare/org.modelingvalue.jdclare.swing/src"          "dclareForJava/ext/src"                           | egrep -v ' syntax$'
-    isUptodate "jdclare/org.modelingvalue.jdclare.syntax/src"         "dclareForJava/ext/src"                           | egrep -v ' swing$'
-    isUptodate "jdclare/org.modelingvalue.jdclare.syntax.test/src"    "dclareForJava/ext/tst"
-}
-isUptodate() {
-    local src="$1"; shift
-    local trg="$1"; shift
-
-    if ! diff_ "../$src" "../$trg" >/dev/null; then
-        echo "#### $trg"
-        diff_ "../$src" "../$trg" | sed 's/Files/   cp/;s/ and / /;s/ differ//' || :
-    fi
-#    echo "=========== $src"
-#    f="$(find ../$src -name \*.java | head -1 | sed 's|.*/||')"
-#    find .. ! -path \*/ARCHIVE/\* -name "$f" ! -path "../$src/*"
-}
-diff_() {
-    diff -rq --ignore-matching-lines='import.*' --ignore-matching-lines='//.*~' --ignore-all-space --ignore-tab-expansion --ignore-blank-lines "$@"
 }
 versionConsistency() {
     declare -A info
@@ -102,10 +76,11 @@ versionConsistency() {
     }
     forAllProjects gather
 
-    echo "#### current versions:"
+    echo
+    echo "############################################ current versions:"
     for r in "${!info[@]}"; do
         if [[ "${info[$r]}" != '-' ]]; then
-            printf "       %-30s = %s\n" "$r" "${info[$r]}"
+            printf "   %-30s = %s\n" "$r" "${info[$r]}"
         fi
     done | sort
 
@@ -121,16 +96,18 @@ versionConsistency() {
                     read a g v e f <<<"$dep"
                     if [[ "${info[$g]:-}" != "" ]]; then
                         if [[ "$v" != "${info[$g]:-}" ]]; then
-                            printf "       %-30s <- %-30s   =>  but working on %s\n" "$repo" "$g:$v" "${info[$g]:-}"
+                            printf "   %-30s <- %-30s   =>  but working on %s\n" "$repo" "$g:$v" "${info[$g]:-}"
                         else
-                            printf "       %-30s <- %-30s  (ok)\n" "$repo" "$g:$v"
+                            printf "   %-30s <- %-30s  (ok)\n" "$repo" "$g:$v"
                         fi
                     fi
                 fi
             done | sort
         fi
     }
-    echo "#### checking dependencies:"
+
+    echo
+    echo "############################################ checking dependencies:"
     forAllProjects check
 }
 fillLibFolder() {
@@ -138,29 +115,36 @@ fillLibFolder() {
 
     (   cd "../$repo"
         if [[ -f pom.xml ]]; then
+            printf "   %-30s : " "$repo"
             rm -rf lib
-            mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib
-            mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc
-            mvn dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources
+            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib
+            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc
+            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources
+            if [[ -d lib ]]; then
+                printf "%3d jars\n" "$(ls lib | numLines)"
+            else
+                printf "no libs\n"
+            fi
         fi
     )
 }
 main() {
     . ./info.sh
 
-    echo "###################### clone projects if needed:"
-    forAllProjects cloneProject
+    echo
+    echo "############################################ prep projects (creating if needed):"
+    forAllProjects prepProject
 
-    echo "###################### project info:"
+    echo
+    echo "############################################ project info:"
+    echo "   repos-name                     branch           behind  dirty    version"
+    echo "   ------------------------------------------------------------------------"
     forAllProjects projectInfo
 
-    echo "###################### compare with old jdclare project:"
-    isAllUptodate
-
-    echo "###################### version consistency:"
     versionConsistency
 
-    echo "###################### fill lib folders:"
-    #forAllProjects fillLibFolder
+    echo
+    echo "############################################ fill lib folders:"
+    forAllProjects fillLibFolder
 }
 main
