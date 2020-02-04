@@ -28,8 +28,9 @@ genLink() {
 genStatusBadge() {
     local   repo="$1"; shift
     local action="$1"; shift
+    local branch="$1"; shift
 
-    genLink "Actions Status" "https://github.com/$MVG/$repo/workflows/$action/badge.svg"
+    genLink "" "https://github.com/$MVG/$repo/workflows/$action/badge.svg?branch=$branch"
 }
 genLastCommitBadge() {
     local repo="$1"; shift
@@ -41,11 +42,12 @@ genRepo() {
     local     repo="$1"; shift
     local   action="$1"; shift
 
-    local col2 col3
-    col2="$(genLink "!$(genStatusBadge     "$repo" "$action")" "https://github.com/$MVG/$repo/actions")"
-    col3="$(genLink "!$(genLastCommitBadge "$repo"          )" "https://github.com/$MVG/$repo"        )"
+    local col2 col3 col4
+    col2="$(genLink "!$(genLastCommitBadge "$repo"                    )" "https://github.com/$MVG/$repo"        )"
+    col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master" )" "https://github.com/$MVG/$repo/actions")"
+    col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop")" "https://github.com/$MVG/$repo/actions")"
 
-    echo "| $category | $repo | $col2 | $col3 |"
+    echo "| $category | $repo | $col2 | $col3 | $col4 |"
 }
 gen() {
     local category="$1"; shift
@@ -62,11 +64,11 @@ gen() {
     done
 }
 cat <<EOF
-|       | repos | build status | last commit |
-|-------|-------|--------------|-------------|
+|       | repos | last commit  |   master    | develop |
+|-------|-------|--------------|-------------|---------|
 $(gen dclare   "${repoListDclare[@]}")
-|       |       |              |             |
+|       |       |              |             |         |
 $(gen examples "${repoListExamples[@]}")
-|       |       |              |             |
+|       |       |              |             |         |
 $(gen support  "${repoListSupport[@]}")
 EOF
