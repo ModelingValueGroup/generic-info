@@ -31,8 +31,9 @@ export repoListExamples=(
 )
 export repoListSupport=(
     generic-info                    check
-    upload-maven-package-action     test
     buildTools                      build%20and%20test
+    upload-maven-package-action     test
+    sync-s3-action                  test
 )
 export repoList=(
     "${repoListDclare[@]}"

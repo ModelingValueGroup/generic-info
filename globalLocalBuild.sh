@@ -41,7 +41,13 @@ prepProject() {
         git clone "https://github.com/ModelingValueGroup/$repo.git" ../$repo 2>&1 >/dev/null
     else
         printf "   %-32s fetching...\n" "$repo"
-        (cd "../$repo"; git fetch origin 2>&1 >/dev/null)
+        (   cd "../$repo"
+            git fetch origin
+            git pull
+            for br in $(git branch | sed '/\*/d;s/..//'); do
+                git fetch origin $br:$br || :
+            done
+        ) # 2>&1 >/dev/null
     fi
 }
 projectInfo() {
