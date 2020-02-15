@@ -42,9 +42,12 @@ prepProject() {
     else
         printf "   %-32s fetching...\n" "$repo"
         (   cd "../$repo"
-            git fetch origin
-            git pull
+            echo "      fetching..."
+            git fetch origin | sed 's/^/       >/'
+            echo "      pulling..."
+            git pull         | sed '/^Already /d;s/^/       >/'
             for br in $(git branch | sed '/\*/d;s/..//'); do
+                echo "      $br"
                 git fetch origin $br:$br || :
             done
         ) # 2>&1 >/dev/null
@@ -123,9 +126,9 @@ fillLibFolder() {
         if [[ -f pom.xml ]]; then
             printf "   %-30s : " "$repo"
             rm -rf lib
-            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib
-            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc
-            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources
+            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib >/dev/null | :
+            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc >/dev/null | :
+            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources >/dev/null | :
             if [[ -d lib ]]; then
                 printf "%3d jars\n" "$(ls lib | numLines)"
             else
@@ -138,7 +141,7 @@ main() {
     . ./info.sh
 
     echo
-    echo "############################################ prep projects (creating if needed):"
+    echo "############################################ prep projects:"
     forAllProjects prepProject
 
     echo
