@@ -31,7 +31,7 @@ export repoListExamples=(
 )
 export repoListSupport=(
     generic-info                    check
-    buildTools                      build%20and%20test
+    buildtools                      build%20and%20test
     upload-maven-package-action     test
     upload-jetbrains-plugin-action  test
     sync-s3-action                  test
