@@ -16,19 +16,19 @@ jobs:
         with:
           java-version: 11
 
-      - name: "get buildTools"
-        uses: ModelingValueGroup/buildTools@master
+      - name: "get buildtools"
+        uses: ModelingValueGroup/buildtools@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "(re)generate some files"
         run:  |
-          . <(java -jar ~/buildTools.jar)
+          . <(java -jar ~/buildtools.jar)
           correctEols
           correctHeaders header
           ./README-generator.sh >README.md
 
       - name: "push changes back to github"
         run:  |
-          . <(java -jar ~/buildTools.jar)
+          . <(java -jar ~/buildtools.jar)
           pushBackToGithub "${{ secrets.GITHUB_TOKEN }}" "automation@modelingvalue.com" "adjusted files [by github actions]"
