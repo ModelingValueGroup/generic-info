@@ -18,5 +18,10 @@ description: 'get some generic info for many of our projects'
 author: 'Tom Brus'
 
 runs:
-  using: 'node12'
-  main : 'entrypoint.js'
+  using: 'composite'
+  steps:
+    - shell: bash
+      id: main
+      run: |
+        set -euo pipefail
+        cp "${{github.action_path}}/header" .
