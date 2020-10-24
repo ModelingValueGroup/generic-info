@@ -18,10 +18,10 @@
 export MVG=ModelingValueGroup
 ###########################################################################################################################
 export repoListDclare=(
-    immutable-collections           build%20and%20test
-    dclare                          build%20and%20test
-    dclareForJava                   build%20and%20test
-    dclareForMPS                    build%20and%20test
+    immutable-collections           build
+    dclare                          build
+    dclareForJava                   build
+    dclareForMPS                    build
 )
 export repoListExamples=(
     ex-FlattenAndCopy               notYetImplemented
@@ -31,7 +31,7 @@ export repoListExamples=(
 )
 export repoListSupport=(
     generic-info                    check
-    buildtools                      build%20and%20test
+    buildtools                      build
     upload-maven-package-action     test
     upload-jetbrains-plugin-action  test
     sync-s3-action                  test
