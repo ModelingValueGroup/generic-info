@@ -71,4 +71,6 @@ $(gen dclare   "${repoListDclare[@]}")
 $(gen examples "${repoListExamples[@]}")
 |       |       |              |             |         |
 $(gen support  "${repoListSupport[@]}")
+|       |       |              |             |         |
+$(gen support  "${repoListAux[@]}")
 EOF

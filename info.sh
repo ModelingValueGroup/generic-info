@@ -34,11 +34,19 @@ export repoListSupport=(
     buildtools                      build
     upload-maven-package-action     test
     upload-jetbrains-plugin-action  test
-    sync-s3-action                  test
+)
+export repoListAux=(
+    sync-proxy                      build
+    template-java                   build
+    template-action                 build
+    tmp                             build
+    tmp-snapshots                   none
+    modelingvalue.nl                none
 )
 export repoList=(
     "${repoListDclare[@]}"
     "${repoListExamples[@]}"
     "${repoListSupport[@]}"
+    "${repoListAux[@]}"
 )
 ###########################################################################################################################
