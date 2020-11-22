@@ -32,10 +32,12 @@ export repoListExamples=(
 export repoListSupport=(
     generic-info                    check
     buildtools                      build
+    mvgJson                         build
     upload-maven-package-action     test
     upload-jetbrains-plugin-action  test
 )
 export repoListAux=(
+    service-brainstorm              build
     sync-proxy                      build
     template-java                   build
     template-action                 build

@@ -72,5 +72,5 @@ $(gen examples "${repoListExamples[@]}")
 |       |       |              |             |         |
 $(gen support  "${repoListSupport[@]}")
 |       |       |              |             |         |
-$(gen support  "${repoListAux[@]}")
+$(gen aux  "${repoListAux[@]}")
 EOF
