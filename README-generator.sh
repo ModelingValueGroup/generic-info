@@ -43,11 +43,12 @@ genRepo() {
     local   action="$1"; shift
 
     local col2 col3 col4
-    col2="$(genLink "!$(genLastCommitBadge "$repo"                    )" "https://github.com/$MVG/$repo"        )"
-    col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master" )" "https://github.com/$MVG/$repo/actions")"
-    col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop")" "https://github.com/$MVG/$repo/actions")"
+    col2="$(genLink "!$(genLastCommitBadge "$repo"                    )"            "https://github.com/$MVG/$repo"        )"
+    col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master" )"            "https://github.com/$MVG/$repo/actions")"
+    col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop")"            "https://github.com/$MVG/$repo/actions")"
+    col5="$(genLink "!$(genStatusBadge     "$repo" "$action" "gradle-candidate")"   "https://github.com/$MVG/$repo/actions")"
 
-    echo "| $category | $repo | $col2 | $col3 | $col4 |"
+    echo "| $category | $repo | $col2 | $col3 | $col4 | $col5 |"
 }
 gen() {
     local category="$1"; shift
@@ -64,13 +65,13 @@ gen() {
     done
 }
 cat <<EOF
-|       | repos | last commit  |   master    | develop |
-|-------|-------|--------------|-------------|---------|
+|       | repository | last commit  | master | develop | gradle-candidate |
+|-------|------------|--------------|--------|---------|------------------|
 $(gen dclare   "${repoListDclare[@]}")
-|       |       |              |             |         |
+|       |            |              |        |         |                  |
 $(gen examples "${repoListExamples[@]}")
-|       |       |              |             |         |
+|       |            |              |        |         |                  |
 $(gen support  "${repoListSupport[@]}")
-|       |       |              |             |         |
-$(gen aux  "${repoListAux[@]}")
+|       |            |              |        |         |                  |
+$(gen aux      "${repoListAux[@]}")
 EOF
