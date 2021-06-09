@@ -19,6 +19,9 @@ set -euo pipefail
 ###########################################################################################################################
 . ./info.sh
 ###########################################################################################################################
+           style="for-the-badge"
+lastCommitBranch="develop"
+
 genLink() {
     local name="$1"; shift
     local  url="$1"; shift
@@ -30,12 +33,12 @@ genStatusBadge() {
     local action="$1"; shift
     local branch="$1"; shift
 
-    genLink "" "https://github.com/$MVG/$repo/workflows/$action/badge.svg?branch=$branch"
+    genLink "" "https://github.com/$MVG/$repo/workflows/$action/badge.svg?branch=$branch&style=$style"
 }
 genLastCommitBadge() {
     local repo="$1"; shift
 
-    genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo?style=plastic"
+    genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$lastCommitBranch?style=$style"
 }
 genRepo() {
     local category="$1"; shift
