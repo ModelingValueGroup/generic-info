@@ -39,7 +39,6 @@ genLastCommitBadge() {
     genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$branch?style=for-the-badge"
 }
 genRepo() {
-    local category="$1"; shift
     local     repo="$1"; shift
     local   action="$1"; shift
     local   branch="$1"; shift
@@ -50,10 +49,12 @@ genRepo() {
     col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop"         )"   "https://github.com/$MVG/$repo/actions")"
     col5="$(genLink "!$(genStatusBadge     "$repo" "$action" "gradle-candidate")"   "https://github.com/$MVG/$repo/actions")"
 
-    echo "| $category | $repo | $col2 | $col3 | $col4 | $col5 |"
+    echo "| $repo | $col2 | $col3 | $col4 | $col5 |"
 }
 gen() {
     local category="$1"; shift
+
+    echo "| $category |"
 
     local i repo action branch
     for i in "$@"; do
@@ -63,22 +64,21 @@ gen() {
             action="$i"
         else
             branch="$i"
-            genRepo "$category" "$repo" "$action" "$branch"
+            genRepo "$repo" "$action" "$branch"
             branch=
             action=
             repo=
-            category=
         fi
     done
 }
 cat <<EOF
-|       | repository | last commit  | master | develop | gradle&#8209;candidate |
-|-------|------------|--------------|--------|---------|------------------------|
-$(gen dclare   "${repoListDclare[@]}")
-|       |            |              |        |         |                        |
-$(gen examples "${repoListExamples[@]}")
-|       |            |              |        |         |                        |
-$(gen support  "${repoListSupport[@]}")
-|       |            |              |        |         |                        |
-$(gen aux      "${repoListAux[@]}")
+| repository | last commit  | master | develop | gradle&#8209;candidate |
+|------------|--------------|--------|---------|------------------------|
+$(gen ":one: **\`dclare\`**"        "${repoListDclare[@]}")
+|            |              |        |         |                        |
+$(gen ":two: **\`examples\`**"      "${repoListExamples[@]}")
+|            |              |        |         |                        |
+$(gen ":three: **\`support\`**"     "${repoListSupport[@]}")
+|            |              |        |         |                        |
+$(gen ":four: **\`aux\`**"          "${repoListAux[@]}")
 EOF
