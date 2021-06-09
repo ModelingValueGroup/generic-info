@@ -18,32 +18,31 @@
 export MVG=ModelingValueGroup
 ###########################################################################################################################
 export repoListDclare=(
-    immutable-collections           build
-    dclare                          build
-    dclareForJava                   build
-    dclareForMPS                    build
+    immutable-collections           build               develop
+    dclare                          build               develop
+    dclareForJava                   build               develop
+    dclareForMPS                    build               develop
 )
 export repoListExamples=(
-    ex-FlattenAndCopy               notYetImplemented
-    ex-NiamToOO                     notYetImplemented
-    ex-EntityClassJava              notYetImplemented
-    ex-Sudoku                       notYetImplemented
+    ex-FlattenAndCopy               notYetImplemented   master
+    ex-NiamToOO                     notYetImplemented   master
+    ex-EntityClassJava              notYetImplemented   master
+    ex-Sudoku                       notYetImplemented   master
 )
 export repoListSupport=(
-    generic-info                    check
-    buildtools                      build
-    mvgJson                         build
-    upload-maven-package-action     test
-    upload-jetbrains-plugin-action  test
+    generic-info                    check               master
+    buildtools                      build               master
+    mvgJson                         build               develop
+    gradlePlugins                   build               develop
+    upload-maven-package-action     test                master
+    upload-jetbrains-plugin-action  test                master
 )
 export repoListAux=(
-    service-brainstorm              build
-    sync-proxy                      build
-    template-java                   build
-    template-action                 build
-    tmp                             build
-    tmp-snapshots                   none
-    modelingvalue.nl                none
+    service-brainstorm              build               develop
+    sync-proxy                      build               develop
+    template-java                   build               master
+    template-action                 build               master
+    modelingvalue.nl                none                master
 )
 export repoList=(
     "${repoListDclare[@]}"

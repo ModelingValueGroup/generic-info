@@ -19,9 +19,6 @@ set -euo pipefail
 ###########################################################################################################################
 . ./info.sh
 ###########################################################################################################################
-           style="for-the-badge"
-lastCommitBranch="develop"
-
 genLink() {
     local name="$1"; shift
     local  url="$1"; shift
@@ -33,22 +30,24 @@ genStatusBadge() {
     local action="$1"; shift
     local branch="$1"; shift
 
-    genLink "" "https://github.com/$MVG/$repo/workflows/$action/badge.svg?branch=$branch&style=$style"
+    genLink "" "https://github.com/$MVG/$repo/workflows/$action/badge.svg?branch=$branch"
 }
 genLastCommitBadge() {
-    local repo="$1"; shift
+    local   repo="$1"; shift
+    local branch="$1"; shift
 
-    genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$lastCommitBranch?style=$style"
+    genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$branch?style=for-the-badge"
 }
 genRepo() {
     local category="$1"; shift
     local     repo="$1"; shift
     local   action="$1"; shift
+    local   branch="$1"; shift
 
     local col2 col3 col4
-    col2="$(genLink "!$(genLastCommitBadge "$repo"                    )"            "https://github.com/$MVG/$repo"        )"
-    col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master" )"            "https://github.com/$MVG/$repo/actions")"
-    col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop")"            "https://github.com/$MVG/$repo/actions")"
+    col2="$(genLink "!$(genLastCommitBadge "$repo" "$branch"                   )"   "https://github.com/$MVG/$repo"        )"
+    col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master"          )"   "https://github.com/$MVG/$repo/actions")"
+    col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop"         )"   "https://github.com/$MVG/$repo/actions")"
     col5="$(genLink "!$(genStatusBadge     "$repo" "$action" "gradle-candidate")"   "https://github.com/$MVG/$repo/actions")"
 
     echo "| $category | $repo | $col2 | $col3 | $col4 | $col5 |"
@@ -56,25 +55,30 @@ genRepo() {
 gen() {
     local category="$1"; shift
 
-    local i r
+    local i repo action branch
     for i in "$@"; do
-        if [[ "${r:-}" == "" ]]; then
-            r="$i"
+        if [[ "${repo:-}" == "" ]]; then
+            repo="$i"
+        elif [[ "${action:-}" == "" ]]; then
+            action="$i"
         else
-            genRepo "$category" "$r" "$i"
-            r=
+            branch="$i"
+            genRepo "$category" "$repo" "$action" "$branch"
+            branch=
+            action=
+            repo=
             category=
         fi
     done
 }
 cat <<EOF
-|       | repository | last commit  | master | develop | gradle-candidate |
-|-------|------------|--------------|--------|---------|------------------|
+|       | repository | last commit  | master | develop | gradle&#8209;candidate |
+|-------|------------|--------------|--------|---------|------------------------|
 $(gen dclare   "${repoListDclare[@]}")
-|       |            |              |        |         |                  |
+|       |            |              |        |         |                        |
 $(gen examples "${repoListExamples[@]}")
-|       |            |              |        |         |                  |
+|       |            |              |        |         |                        |
 $(gen support  "${repoListSupport[@]}")
-|       |            |              |        |         |                  |
+|       |            |              |        |         |                        |
 $(gen aux      "${repoListAux[@]}")
 EOF

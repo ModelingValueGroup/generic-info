@@ -19,14 +19,18 @@ set -euo pipefail
 forAllProjects() {
     local fun="$1"; shift
 
-    local  i=''
-    local ii=''
-    for i in "${repoList[@]}"; do
-        if [[ "$ii" == '' ]]; then
-            ii="$i"
+    local i repo action branch
+    for i in "$@"; do
+        if [[ "${repo:-}" == "" ]]; then
+            repo="$i"
+        elif [[ "${action:-}" == "" ]]; then
+            action="$i"
         else
-            "$fun" "$ii" "$i"
-            ii=''
+            branch="$i"
+            "$fun" "$repo" "$action" "$branch"
+            branch=
+            action=
+            repo=
         fi
     done
 }
