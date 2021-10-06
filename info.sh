@@ -21,14 +21,14 @@ export MVG=ModelingValueGroup
 #   repo-name                       badge-workflow      badge-branch
 ###########################################################################################################################
 export repoListDclare=(
-    cdm                             build               develop
-    cds-runtime                     build               develop
-    dclareForMPS                    build               develop
-    dclareForJava                   build               develop
-    dclare                          build               develop
-    immutable-collections           build               develop
-    mvg-json                        build               develop
-    sync-proxy                      build               develop
+    cdm                             build.yaml          develop
+    cds-runtime                     build.yaml          develop
+    dclareForMPS                    build.yaml          develop
+    dclareForJava                   build.yaml          develop
+    dclare                          build.yaml          develop
+    immutable-collections           build.yaml          develop
+    mvg-json                        build.yaml          develop
+    sync-proxy                      build.yaml          develop
 )
 export repoListExamples=(
     ex-FlattenAndCopy               -                   master
@@ -37,14 +37,14 @@ export repoListExamples=(
     ex-Sudoku                       -                   master
 )
 export repoListSupport=(
-    generic-info                    check               master
-    gradlePlugins                   build               develop
-    upload-maven-package-action     test                master
-    upload-jetbrains-plugin-action  test                master
+    generic-info                    check.yaml          master
+    gradlePlugins                   build.yaml          develop
+    upload-maven-package-action     test.yaml           master
+    upload-jetbrains-plugin-action  test.yaml           master
 )
 export repoListAux=(
-    template-java                   build               master
-    template-action                 build               master
+    template-java                   build.yaml          master
+    template-action                 build.yaml          master
     modelingvalue.nl                -                   master
 )
 export repoList=(

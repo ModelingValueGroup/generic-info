@@ -30,7 +30,7 @@ genStatusBadge() {
     local action="$1"; shift
     local branch="$1"; shift
 
-    genLink "" "https://github.com/$MVG/$repo/workflows/$action/badge.svg?branch=$branch"
+   genLink "" "https://github.com/$MVG/$repo/actions/workflows/$action/badge.svg?branch=$branch"
 }
 genLastCommitBadge() {
     local   repo="$1"; shift
