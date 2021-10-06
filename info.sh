@@ -17,32 +17,35 @@
 ###########################################################################################################################
 export MVG=ModelingValueGroup
 ###########################################################################################################################
+# format below:
+#   repo-name                       badge-workflow      badge-branch
+###########################################################################################################################
 export repoListDclare=(
-    immutable-collections           build               develop
-    dclare                          build               develop
-    dclareForJava                   build               develop
+    cdm                             build               develop
+    cds-runtime                     build               develop
     dclareForMPS                    build               develop
+    dclareForJava                   build               develop
+    dclare                          build               develop
+    immutable-collections           build               develop
+    mvg-json                        build               develop
+    sync-proxy                      build               develop
 )
 export repoListExamples=(
-    ex-FlattenAndCopy               notYetImplemented   master
-    ex-NiamToOO                     notYetImplemented   master
-    ex-EntityClassJava              notYetImplemented   master
-    ex-Sudoku                       notYetImplemented   master
+    ex-FlattenAndCopy               -                   master
+    ex-NiamToOO                     -                   master
+    ex-EntityClassJava              -                   master
+    ex-Sudoku                       -                   master
 )
 export repoListSupport=(
     generic-info                    check               master
-    buildtools                      build               master
-    mvgJson                         build               develop
     gradlePlugins                   build               develop
     upload-maven-package-action     test                master
     upload-jetbrains-plugin-action  test                master
 )
 export repoListAux=(
-    service-brainstorm              build               develop
-    sync-proxy                      build               develop
     template-java                   build               master
     template-action                 build               master
-    modelingvalue.nl                none                master
+    modelingvalue.nl                -                   master
 )
 export repoList=(
     "${repoListDclare[@]}"
