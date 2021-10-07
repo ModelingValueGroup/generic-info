@@ -20,7 +20,7 @@ forAllProjects() {
     local fun="$1"; shift
 
     local i repo action branch
-    for i in "$@"; do
+    for i in "${repoList[@]}"; do
         if [[ "${repo:-}" == "" ]]; then
             repo="$i"
         elif [[ "${action:-}" == "" ]]; then
@@ -39,10 +39,12 @@ numLines() {
 }
 prepProject() {
     local repo="$1"; shift
+    local a="$1"; shift
+    local b="$1"; shift
 
     if [[ ! -d "../$repo" ]]; then
         printf "   %-32s cloning...\n" "$repo"
-        git clone "https://github.com/ModelingValueGroup/$repo.git" ../$repo 2>&1 >/dev/null
+        git clone "https://github.com/ModelingValueGroup/$repo.git" "../$repo" 2>&1 >/dev/null
     else
         printf "   %-32s fetching...\n" "$repo"
         (   cd "../$repo"
@@ -59,90 +61,29 @@ prepProject() {
 }
 projectInfo() {
     local repo="$1"; shift
+    local a="$1"; shift
+    local b="$1"; shift
 
     (   cd ../$repo
         local  branch="$(git status | egrep "^On branch "                | sed 's/On branch //')"
         local   dirty="$(git status | egrep '^\t(new file|modified):   ' | numLines)"
         local updates="$(git log HEAD..origin/$branch --oneline          | numLines)"
-        local version
-        if [[ -f "../$repo/project.sh" ]]; then
-            . "../$repo/project.sh"
-            read a g version e f <<< "${artifacts[0]}"
-        else
-            version="-"
-        fi
+        local version="-"
+
         printf "   %-30s %-16s %6s %6s %10s\n" "$repo" "$branch" "$updates" "$dirty" "$version"
     )
 }
-versionConsistency() {
-    declare -A info
-    gather() {
-        local repo="$1"; shift
-
-        if [[ -f "../$repo/project.sh" ]]; then
-            . "../$repo/project.sh"
-            read a g version e f <<<"${artifacts[0]}"
-        else
-            local version="-"
-        fi
-        info[$repo]="$version"
-    }
-    forAllProjects gather
-
-    echo
-    echo "############################################ current versions:"
-    for r in "${!info[@]}"; do
-        if [[ "${info[$r]}" != '-' ]]; then
-            printf "   %-30s = %s\n" "$r" "${info[$r]}"
-        fi
-    done | sort
-
-    check() {
-        local repo="$1"; shift
-
-        if [[ -f "../$repo/project.sh" ]]; then
-            . "../$repo/project.sh"
-            for dep in "${dependencies[@]}"; do
-                if [[ "$dep" =~ jars@* ]]; then
-                    : # ignore jars dependencies here
-                else
-                    read a g v e f <<<"$dep"
-                    if [[ "${info[$g]:-}" != "" ]]; then
-                        if [[ "$v" != "${info[$g]:-}" ]]; then
-                            printf "   %-30s <- %-30s   =>  but working on %s\n" "$repo" "$g:$v" "${info[$g]:-}"
-                        else
-                            printf "   %-30s <- %-30s  (ok)\n" "$repo" "$g:$v"
-                        fi
-                    fi
-                fi
-            done | sort
-        fi
-    }
-
-    echo
-    echo "############################################ checking dependencies:"
-    forAllProjects check
-}
-fillLibFolder() {
+gather() {
     local repo="$1"; shift
+    local a="$1"; shift
+    local b="$1"; shift
 
-    (   cd "../$repo"
-        if [[ -f pom.xml ]]; then
-            printf "   %-30s : " "$repo"
-            rm -rf lib
-            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib >/dev/null | :
-            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=javadoc >/dev/null | :
-            mvn -q dependency:copy-dependencies -Dmdep.stripVersion=true -DoutputDirectory=lib -Dclassifier=sources >/dev/null | :
-            if [[ -d lib ]]; then
-                printf "%3d jars\n" "$(ls lib | numLines)"
-            else
-                printf "no libs\n"
-            fi
-        fi
-    )
+    local version="-"
+    info[$repo]="$version"
 }
 main() {
     . ./info.sh
+    declare -A info
 
     echo
     echo "############################################ prep projects:"
@@ -153,11 +94,15 @@ main() {
     echo "   repos-name                     branch           behind  dirty    version"
     echo "   ------------------------------------------------------------------------"
     forAllProjects projectInfo
-
-    versionConsistency
-
+    forAllProjects gather
     echo
-    echo "############################################ fill lib folders:"
-    forAllProjects fillLibFolder
+    echo "############################################ current versions:"
+    for r in "${!info[@]}"; do
+        if [[ "${info[$r]}" != '-' ]]; then
+            printf "   %-30s = %s\n" "$r" "${info[$r]}"
+        fi
+    done | sort
 }
+
+
 main

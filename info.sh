@@ -37,7 +37,7 @@ export repoListExamples=(
     ex-Sudoku                       -                   master
 )
 export repoListSupport=(
-    generic-info                    check.yaml          master
+    generic-info                    build.yaml          master
     gradlePlugins                   build.yaml          develop
     upload-maven-package-action     test.yaml           master
     upload-jetbrains-plugin-action  test.yaml           master
