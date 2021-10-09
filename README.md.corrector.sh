@@ -43,11 +43,13 @@ genRepo() {
     local   action="$1"; shift
     local   branch="$1"; shift
 
-    local col2 col3 col4
-    col2="$(genLink "!$(genLastCommitBadge "$repo" "$branch"                   )"   "https://github.com/$MVG/$repo"        )"
+    local col2="$(genLink "!$(genLastCommitBadge "$repo" "$branch"                   )"   "https://github.com/$MVG/$repo"        )"
     if [[ "$action" != "-" ]]; then
-        col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master"          )"   "https://github.com/$MVG/$repo/actions")"
-        col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop"         )"   "https://github.com/$MVG/$repo/actions")"
+        local col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master"          )"   "https://github.com/$MVG/$repo/actions")"
+        local col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop"         )"   "https://github.com/$MVG/$repo/actions")"
+    else
+        local col3=""
+        local col4=""
     fi
 
     echo "| $repo | $col2 | $col3 | $col4 |"
