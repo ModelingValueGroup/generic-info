@@ -84,17 +84,18 @@ gather() {
 main() {
     . ./info.sh
     declare -A info
+    forAllProjects gather
 
     echo
     echo "############################################ prep projects:"
-    forAllProjects prepProject
+    #forAllProjects prepProject
 
     echo
     echo "############################################ project info:"
     echo "   repos-name                     branch           behind  dirty    version"
     echo "   ------------------------------------------------------------------------"
     forAllProjects projectInfo
-    forAllProjects gather
+
     echo
     echo "############################################ current versions:"
     for r in "${!info[@]}"; do
@@ -102,6 +103,10 @@ main() {
             printf "   %-30s = %s\n" "$r" "${info[$r]}"
         fi
     done | sort
+
+    echo
+    echo "############################################ unrelated projects:"
+    (cd ..; eval "ls $(printf " | fgrep -v '%s'" ${!info[@]})")
 }
 
 
