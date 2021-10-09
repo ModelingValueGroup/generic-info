@@ -61,8 +61,6 @@ prepProject() {
 }
 projectInfo() {
     local repo="$1"; shift
-    local a="$1"; shift
-    local b="$1"; shift
 
     (   cd ../$repo
         local  branch="$(git status | egrep "^On branch "                | sed 's/On branch //')"
@@ -71,6 +69,7 @@ projectInfo() {
         local version="-"
 
         printf "   %-30s %-16s %6s %6s %10s\n" "$repo" "$branch" "$updates" "$dirty" "$version"
+        git reflog
     )
 }
 gather() {
@@ -106,7 +105,13 @@ main() {
 
     echo
     echo "############################################ unrelated projects:"
-    (cd ..; eval "ls $(printf " | fgrep -v '%s'" ${!info[@]})")
+    for repo in $(cd ..; eval "ls $(printf " | fgrep -v '%s'" ${!info[@]})"); do
+        if [[ -d ../$repo/.git ]]; then
+            projectInfo $repo
+        else
+            echo "$repo: NO GIT PROJECT"
+        fi
+    done
 }
 
 
