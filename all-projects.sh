@@ -15,103 +15,119 @@
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 set -euo pipefail
+#set -x
 
+allRepoNames() {
+    printf "%s%.s%.s\n" "${repoList[@]}" | sort
+}
+numLines() {
+    wc -l | sed 's/ //g;s/^0$/./'
+}
 forAllProjects() {
     local fun="$1"; shift
 
-    local i repo action branch
-    for i in "${repoList[@]}"; do
-        if [[ "${repo:-}" == "" ]]; then
-            repo="$i"
-        elif [[ "${action:-}" == "" ]]; then
-            action="$i"
-        else
-            branch="$i"
-            "$fun" "$repo" "$action" "$branch"
-            branch=
-            action=
-            repo=
-        fi
+    for repo in "${repoName[@]}"; do
+        mkdir -p ../$repo
+        ( cd "../$repo"; "$fun" "$repo" )
     done
+    wait
 }
-numLines() {
-    wc -l | sed 's/ //g;s/^0$/-/'
+getBranch() {
+    printf "[%s]='%s' " "$1" "$(git status | egrep "^On branch " | sed 's/On branch //')"
+}
+getVersion() {
+    printf "[%s]='%s' " "$1" "$( if [[ ! -f gradle.properties ]]; then echo ''; else egrep '^version[ =]' gradle.properties | sed 's/.*= *//'; fi )"
+}
+getNumAhead() {
+    printf "[%s]='%s' " "$1" "$(git cherry | numLines)"
+}
+getNumBehind() {
+    printf "[%s]='%s' " "$1" "$(git log HEAD..origin/${branchOf[$1]} --oneline | numLines)"
+}
+getNumDirty() {
+    printf "[%s]='%s' " "$1" "$(git status | egrep '^\t(new file|modified):   ' | numLines || :)"
+}
+getNumDependabot() {
+    printf "[%s]='%s' " "$1" "$(git branch -r | egrep "..origin/dependabot/" | numLines || :)"
+}
+fetch_pull() {
+    local repo="$1"; shift
+
+    (   git fetch origin
+        git pull --ff-only
+    ) >/dev/null 2>&1 &
 }
 prepProject() {
     local repo="$1"; shift
-    local a="$1"; shift
-    local b="$1"; shift
 
-    if [[ ! -d "../$repo" ]]; then
-        printf "   %-32s cloning...\n" "$repo"
-        git clone "https://github.com/ModelingValueGroup/$repo.git" "../$repo" 2>&1 >/dev/null
-    else
-        printf "   %-32s fetching...\n" "$repo"
-        (   cd "../$repo"
-            echo "      fetching..."
-            git fetch origin | sed 's/^/       >/'
-            echo "      pulling..."
-            git pull         | sed '/^Already /d;s/^/       >/'
-            for br in $(git branch | sed '/\*/d;s/..//'); do
-                echo "      $br"
-                git fetch origin $br:$br || :
-            done
-        ) # 2>&1 >/dev/null
-    fi
+    printf "   %-s\n" "$repo"
+    (
+        if [[ ! -d ".git" ]]; then
+            echo "cloning..."
+            git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
+            cp -R TMP_GIT/. .
+            rmdir TMP_GIT
+        fi
+        for br in $(git branch | sed 's/..//' | sort); do
+            echo "    - $br"
+        done
+        for br in $(git branch -r | sed '/^  origin[/]HEAD/d;s|..origin/||' | sort); do
+            echo "    = $br"
+        done
+    ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
 }
 projectInfo() {
     local repo="$1"; shift
 
-    (   cd ../$repo
-        local  branch="$(git status | egrep "^On branch "                | sed 's/On branch //')"
-        local   dirty="$(git status | egrep '^\t(new file|modified):   ' | numLines)"
-        local updates="$(git log HEAD..origin/$branch --oneline          | numLines)"
-        local version="-"
-
-        printf "   %-30s %-16s %6s %6s %10s\n" "$repo" "$branch" "$updates" "$dirty" "$version"
-        git reflog
-    )
+    printf "   %-30s %-16s %-10s %6s %6s %6s %6s\n" "$repo" "${branchOf[$repo]}" "${versionOf[$repo]}" "${aheadOf[$repo]}" "${behindOf[$repo]}" "${dirtyOf[$repo]}" "${dependabot[$repo]}"
 }
-gather() {
-    local repo="$1"; shift
-    local a="$1"; shift
-    local b="$1"; shift
-
-    local version="-"
-    info[$repo]="$version"
+showUnrelated() {
+    first=false
+    for repo in $(cd ..; eval "ls $(printf " | fgrep -v '%s'" ${repoName[@]})"); do
+        if [[ -d ../$repo ]]; then
+            if [[ -d ../$repo/.git ]]; then
+                if [[ $first == false ]]; then
+                    first=true
+                    echo
+                    echo "############################################ unrelated projects:"
+                fi
+                projectInfo $repo
+            else
+                echo "$repo: NO GIT PROJECT"
+            fi
+        fi
+    done
 }
 main() {
     . ./info.sh
-    declare -A info
-    forAllProjects gather
+    declare -A workflowOf mainBranchOf branchOf versionOf aheadOf behindOf dirtyOf dependabot
+    eval     "repoName=( $(printf "%s%.s%.s\n"  "${repoList[@]}" | sort) )"
+    eval   "workflowOf=( $(printf "[%s]=%s%.s " "${repoList[@]}") )"
+    eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
+    eval     "branchOf=( $(forAllProjects getBranch       ) )"
+    eval    "versionOf=( $(forAllProjects getVersion      ) )"
+    eval      "aheadOf=( $(forAllProjects getNumAhead     ) )"
+    eval     "behindOf=( $(forAllProjects getNumBehind    ) )"
+    eval      "dirtyOf=( $(forAllProjects getNumDirty     ) )"
+    eval   "dependabot=( $(forAllProjects getNumDependabot) )"
+
+    echo
+    echo "############################################ fetch/pull..."
+    forAllProjects fetch_pull
 
     echo
     echo "############################################ prep projects:"
-    #forAllProjects prepProject
+    forAllProjects prepProject
 
     echo
     echo "############################################ project info:"
-    echo "   repos-name                     branch           behind  dirty    version"
-    echo "   ------------------------------------------------------------------------"
+    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s +\n" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
+    printf "   %-30s %-16s %-10s %6s %6s %6s %6s\n" "repos-name" "branch" "version" "ahead" "behind" "dirty" "depbot"
+    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s +\n" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     forAllProjects projectInfo
+    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s +\n" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
 
-    echo
-    echo "############################################ current versions:"
-    for r in "${!info[@]}"; do
-        if [[ "${info[$r]}" != '-' ]]; then
-            printf "   %-30s = %s\n" "$r" "${info[$r]}"
-        fi
-    done | sort
-
-    echo
-    echo "############################################ unrelated projects:"
-    for repo in $(cd ..; eval "ls $(printf " | fgrep -v '%s'" ${!info[@]})"); do
-        if [[ -d ../$repo/.git ]]; then
-            projectInfo $repo
-        else
-            echo "$repo: NO GIT PROJECT"
-        fi
-    done
+    showUnrelated
 }
 
 
