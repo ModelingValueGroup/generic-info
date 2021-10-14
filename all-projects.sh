@@ -98,6 +98,28 @@ showUnrelated() {
         fi
     done
 }
+buildAll() {
+    rm -rf ~/.m2/repository/snapshots/
+    local repoSeq=(sync-proxy mvg-json immutable-collections dclare dclareForJava dclareForMPS cds-runtime cdm)
+    for repo in "${repoSeq[@]}"; do
+        (   cd ../$repo
+            printf "\n=========================== %s ===========================\n" "$(pwd | basename)"
+            ./gradlew clean
+        )
+    done
+    for repo in "${repoSeq[@]}"; do
+        (   cd ../$repo
+            printf "\n=========================== %s ===========================\n" "$(pwd | basename)"
+            ./gradlew build publish
+        )
+    done
+    for repo in dclareForMPS cdm; do
+        (   cd ../$repo
+            printf "\n=========================== %s ===========================\n" "$(pwd | basename)"
+            ./gradlew gatherRuntimeJars
+        )
+    done
+}
 main() {
     . ./info.sh
     declare -A workflowOf mainBranchOf branchOf versionOf aheadOf behindOf dirtyOf dependabot
@@ -128,7 +150,9 @@ main() {
     printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s +\n" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
 
     showUnrelated
+
+    buildAll
 }
 
 
-main
+main "$@"
