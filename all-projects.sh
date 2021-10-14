@@ -50,13 +50,6 @@ getNumDirty() {
 getNumDependabot() {
     printf "[%s]='%s' " "$1" "$(git branch -r | egrep "..origin/dependabot/" | numLines || :)"
 }
-fetch_pull() {
-    local repo="$1"; shift
-
-    (   git fetch origin
-        git pull --ff-only
-    ) >/dev/null 2>&1 &
-}
 prepProject() {
     local repo="$1"; shift
 
@@ -66,7 +59,7 @@ prepProject() {
             echo "cloning..."
             git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
             cp -R TMP_GIT/. .
-            rmdir TMP_GIT
+            rm -rf TMP_GIT
         fi
         for br in $(git branch | sed 's/..//' | sort); do
             echo "    - $br"
@@ -75,6 +68,13 @@ prepProject() {
             echo "    = $br"
         done
     ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
+}
+fetch_pull() {
+    local repo="$1"; shift
+
+    (   git fetch origin
+        git pull --ff-only
+    ) >/dev/null 2>&1 &
 }
 projectInfo() {
     local repo="$1"; shift
@@ -103,29 +103,35 @@ buildAll() {
     local repoSeq=(sync-proxy mvg-json immutable-collections dclare dclareForJava dclareForMPS cds-runtime cdm)
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
-            printf "\n=========================== %s ===========================\n" "$(pwd | basename)"
+            printf "\n=========================== CLEAN:   %s ===========================\n" "$(basename "$(pwd)")"
             ./gradlew clean
         )
     done
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
-            printf "\n=========================== %s ===========================\n" "$(pwd | basename)"
+            printf "\n=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
             ./gradlew build publish
         )
     done
     for repo in dclareForMPS cdm; do
         (   cd ../$repo
-            printf "\n=========================== %s ===========================\n" "$(pwd | basename)"
+            printf "\n=========================== GATHER:  %s ===========================\n" "$(basename "$(pwd)")"
             ./gradlew gatherRuntimeJars
         )
     done
 }
 main() {
     . ./info.sh
-    declare -A workflowOf mainBranchOf branchOf versionOf aheadOf behindOf dirtyOf dependabot
+    declare -A workflowOf mainBranchOf
     eval     "repoName=( $(printf "%s%.s%.s\n"  "${repoList[@]}" | sort) )"
     eval   "workflowOf=( $(printf "[%s]=%s%.s " "${repoList[@]}") )"
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
+
+    echo
+    echo "############################################ prep projects:"
+    forAllProjects prepProject
+
+    declare -A branchOf versionOf aheadOf behindOf dirtyOf dependabot
     eval     "branchOf=( $(forAllProjects getBranch       ) )"
     eval    "versionOf=( $(forAllProjects getVersion      ) )"
     eval      "aheadOf=( $(forAllProjects getNumAhead     ) )"
@@ -136,10 +142,6 @@ main() {
     echo
     echo "############################################ fetch/pull..."
     forAllProjects fetch_pull
-
-    echo
-    echo "############################################ prep projects:"
-    forAllProjects prepProject
 
     echo
     echo "############################################ project info:"
