@@ -17,11 +17,42 @@
 set -euo pipefail
 #set -x
 
-allRepoNames() {
-    printf "%s%.s%.s\n" "${repoList[@]}" | sort
-}
+repoSeq=(
+    sync-proxy
+    mvg-json
+    immutable-collections
+    dclare
+    dclareForJava
+    dclareForMPS
+    cds-runtime
+    cdm
+)
+
+###########################################################################################################################
 numLines() {
     wc -l | sed 's/ //g;s/^0$/./'
+}
+ask() {
+    local msg="$1"; shift
+
+    echo
+    read -p "$msg? (N/y) " -n 1 -r
+    echo
+    [[ "$REPLY" =~ ^[Yy]$ ]]
+}
+pidFamily() {
+    #ps -e -o pid= -o pid=,tty=,stat=,time=,args=
+    declare -A children
+    while read pp p; do
+        children[$pp]+="$p "
+    done < <(ps -e -o ppid=,pid=)
+    walk() {
+        for i in ${children[$1]:-};do
+            printf "%s " $i
+            walk $i
+        done
+    }
+    walk $$
 }
 forAllProjects() {
     local fun="$1"; shift
@@ -30,7 +61,10 @@ forAllProjects() {
         mkdir -p ../$repo
         ( cd "../$repo"; "$fun" "$repo" )
     done
-    wait
+
+    for ppp in $(pidFamily); do
+        wait $ppp || :
+    done >/dev/null 2>&1
 }
 getBranch() {
     printf "[%s]='%s' " "$1" "$(git status | egrep "^On branch " | sed 's/On branch //')"
@@ -48,38 +82,61 @@ getNumDirty() {
     printf "[%s]='%s' " "$1" "$(git status | egrep '^\t(new file|modified):   ' | numLines || :)"
 }
 getNumDependabot() {
-    printf "[%s]='%s' " "$1" "$(git branch -r | egrep "..origin/dependabot/" | numLines || :)"
+    printf "[%s]='%s' " "$1" "$(listRemoteBranches | egrep "^dependabot/" | numLines || :)"
 }
-prepProject() {
+listLocalBranches() {
+    local raw="$(git branch | sed 's|..||' | sort)"
+    local rst="$(egrep -v '^(master|develop)$' <<<"$raw")"
+
+    if [[ "$(fgrep -x develop <<<"$raw")" ]]; then printf "develop "; fi
+    if [[ "$(fgrep -x master  <<<"$raw")" ]]; then printf "master " ; fi
+    printf "%s " $rst
+}
+listRemoteBranches() {
+    local raw="$(git branch -r | sed '/^  origin[/]HEAD/d;s|..origin/||' | sort)"
+    local rst="$(egrep -v '^(master|develop)$' <<<"$raw")"
+
+    if [[ "$(fgrep -x develop <<<"$raw")" ]]; then printf "develop "; fi
+    if [[ "$(fgrep -x master  <<<"$raw")" ]]; then printf "master " ; fi
+    printf "%s " $rst
+}
+###########################################################################################################################
+clone() {
     local repo="$1"; shift
 
-    printf "   %-s\n" "$repo"
-    (
-        if [[ ! -d ".git" ]]; then
-            echo "cloning..."
+    if [[ ! -d ".git" ]]; then
+        printf "cloning %s..." "$repo"
+        (
             git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
             cp -R TMP_GIT/. .
             rm -rf TMP_GIT
-        fi
-        for br in $(git branch | sed 's/..//' | sort); do
-            echo "    - $br"
-        done
-        for br in $(git branch -r | sed '/^  origin[/]HEAD/d;s|..origin/||' | sort); do
-            echo "    = $br"
-        done
-    ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
+            if [[ "$(listRemoteBranches | fgrep develop)" ]]; then
+                git checkout develop
+            fi
+        ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
+    fi
 }
-fetch_pull() {
+fetch() {
+    (git fetch --progress --prune --all) >/dev/null 2>&1 &
+}
+pull() {
     local repo="$1"; shift
 
-    (   git fetch origin
-        git pull --ff-only
-    ) >/dev/null 2>&1 &
+    (git pull --all --ff-only 2>&1 | egrep "(file changed|insertions|deletions)" | sed "s/^/$repo: /")&
 }
 projectInfo() {
     local repo="$1"; shift
 
-    printf "   %-30s %-16s %-10s %6s %6s %6s %6s\n" "$repo" "${branchOf[$repo]}" "${versionOf[$repo]}" "${aheadOf[$repo]}" "${behindOf[$repo]}" "${dirtyOf[$repo]}" "${dependabot[$repo]}"
+    printf "   %-30s %-16s %-10s %6s %6s %6s %6s %-50s %-50s\n" \
+        "$repo" \
+        "${branchOf[$repo]}" \
+        "${versionOf[$repo]}" \
+        "${aheadOf[$repo]}" \
+        "${behindOf[$repo]}" \
+        "${dirtyOf[$repo]}" \
+        "${dependabot[$repo]}" \
+        "$(listLocalBranches)" \
+        "$(listRemoteBranches)"
 }
 showUnrelated() {
     first=false
@@ -98,9 +155,14 @@ showUnrelated() {
         fi
     done
 }
+clearSnapshotsFromMaven() {
+    if ask "do you want to remove all published snapshots from the maven repo"; then
+        local d=~/.m2/repository/snapshots/
+        echo "DELETING '$d'..."
+        rm -rf "$d"
+    fi
+}
 buildAll() {
-    rm -rf ~/.m2/repository/snapshots/
-    local repoSeq=(sync-proxy mvg-json immutable-collections dclare dclareForJava dclareForMPS cds-runtime cdm)
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
             printf "\n=========================== CLEAN:   %s ===========================\n" "$(basename "$(pwd)")"
@@ -109,8 +171,14 @@ buildAll() {
     done
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
+            printf "\n=========================== BUILD  : %s ===========================\n" "$(basename "$(pwd)")"
+            ./gradlew build
+        )
+    done
+    for repo in "${repoSeq[@]}"; do
+        (   cd ../$repo
             printf "\n=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
-            ./gradlew build publish
+            ./gradlew publish
         )
     done
     for repo in dclareForMPS cdm; do
@@ -120,6 +188,7 @@ buildAll() {
         )
     done
 }
+###########################################################################################################################
 main() {
     . ./info.sh
     declare -A workflowOf mainBranchOf
@@ -128,9 +197,21 @@ main() {
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
     echo
-    echo "############################################ prep projects:"
-    forAllProjects prepProject
+    echo "############################################ clone..."
+    forAllProjects clone
 
+    echo
+    echo "############################################ fetch..."
+    forAllProjects fetch
+
+    echo
+    echo "############################################ pull..."
+    forAllProjects pull
+
+    echo
+    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
+    printf "   %-30s %-16s %-10s %6s %6s %6s %6s %-50s %-50s\n" "repos-name" "branch" "version" "ahead" "behind" "dirty" "depbot" "local-branches" "remote-branches"
+    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     declare -A branchOf versionOf aheadOf behindOf dirtyOf dependabot
     eval     "branchOf=( $(forAllProjects getBranch       ) )"
     eval    "versionOf=( $(forAllProjects getVersion      ) )"
@@ -139,22 +220,13 @@ main() {
     eval      "dirtyOf=( $(forAllProjects getNumDirty     ) )"
     eval   "dependabot=( $(forAllProjects getNumDependabot) )"
 
-    echo
-    echo "############################################ fetch/pull..."
-    forAllProjects fetch_pull
-
-    echo
-    echo "############################################ project info:"
-    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s +\n" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
-    printf "   %-30s %-16s %-10s %6s %6s %6s %6s\n" "repos-name" "branch" "version" "ahead" "behind" "dirty" "depbot"
-    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s +\n" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     forAllProjects projectInfo
-    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s +\n" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
+    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
 
     showUnrelated
-
+    clearSnapshotsFromMaven
     buildAll
 }
 
-
+###########################################################################################################################
 main "$@"
