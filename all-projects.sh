@@ -82,7 +82,7 @@ getNumDirty() {
     printf "[%s]='%s' " "$1" "$(git status | egrep '^\t(new file|modified):   ' | numLines || :)"
 }
 getNumDependabot() {
-    printf "[%s]='%s' " "$1" "$(listRemoteBranches | egrep "^dependabot/" | numLines || :)"
+    printf "[%s]='%s' " "$1" "$(listRemoteBranches | tr ' ' '\n' | egrep "^dependabot/" | numLines || :)"
 }
 listLocalBranches() {
     local raw="$(git branch | sed 's|..||' | sort)"
@@ -110,7 +110,7 @@ clone() {
             git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
             cp -R TMP_GIT/. .
             rm -rf TMP_GIT
-            if [[ "$(listRemoteBranches | fgrep develop)" ]]; then
+            if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^develop$')" ]]; then
                 git checkout develop
             fi
         ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
@@ -156,37 +156,36 @@ showUnrelated() {
     done
 }
 clearSnapshotsFromMaven() {
-    if ask "do you want to remove all published snapshots from the maven repo"; then
+    local numJars="$(find ~/.m2/repository/snapshots/ -name \*.jar ! -name \*sources\* ! -name \*javadoc\* | wc -l | sed 's/ //g')"
+    if (( $numJars > 0 )) && ask "do you want to remove all published snapshots ($numJars) from the maven repo"; then
         local d=~/.m2/repository/snapshots/
         echo "DELETING '$d'..."
         rm -rf "$d"
     fi
 }
-buildAll() {
-    for repo in "${repoSeq[@]}"; do
-        (   cd ../$repo
-            printf "\n=========================== CLEAN:   %s ===========================\n" "$(basename "$(pwd)")"
-            ./gradlew clean
-        )
-    done
-    for repo in "${repoSeq[@]}"; do
-        (   cd ../$repo
-            printf "\n=========================== BUILD  : %s ===========================\n" "$(basename "$(pwd)")"
-            ./gradlew build
-        )
-    done
-    for repo in "${repoSeq[@]}"; do
-        (   cd ../$repo
-            printf "\n=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
-            ./gradlew publish
-        )
-    done
-    for repo in dclareForMPS cdm; do
-        (   cd ../$repo
-            printf "\n=========================== GATHER:  %s ===========================\n" "$(basename "$(pwd)")"
-            ./gradlew gatherRuntimeJars
-        )
-    done
+cleanPublishTest() {
+    if ask "do you want to clean - publish - test"; then
+        date
+        for repo in "${repoSeq[@]}"; do
+            (   cd ../$repo
+                printf "\n=========================== CLEAN  : %s ===========================\n" "$(basename "$(pwd)")"
+                ./gradlew clean
+            )
+        done
+        for repo in "${repoSeq[@]}"; do
+            (   cd ../$repo
+                printf "\n=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
+                ./gradlew publish
+            )
+        done
+        for repo in "${repoSeq[@]}"; do
+            (   cd ../$repo
+                printf "\n=========================== TEST   : %s ===========================\n" "$(basename "$(pwd)")"
+                ./gradlew test
+            )
+        done
+        date
+    fi
 }
 ###########################################################################################################################
 main() {
@@ -225,7 +224,7 @@ main() {
 
     showUnrelated
     clearSnapshotsFromMaven
-    buildAll
+    cleanPublishTest
 }
 
 ###########################################################################################################################
