@@ -36,35 +36,24 @@ ask() {
     local msg="$1"; shift
 
     echo
-    read -p "$msg? (N/y) " -n 1 -r
-    echo
+    while ! [[ "${REPLY:-}" =~ ^[YyNn]$ ]]; do
+        read -p "$msg? (N/y) " -n 1 -r
+        echo
+    done
     [[ "$REPLY" =~ ^[Yy]$ ]]
-}
-pidFamily() {
-    #ps -e -o pid= -o pid=,tty=,stat=,time=,args=
-    declare -A children
-    while read pp p; do
-        children[$pp]+="$p "
-    done < <(ps -e -o ppid=,pid=)
-    walk() {
-        for i in ${children[$1]:-};do
-            printf "%s " $i
-            walk $i
-        done
-    }
-    walk $$
 }
 forAllProjects() {
     local fun="$1"; shift
+    local here="$PWD"
 
     for repo in "${repoName[@]}"; do
         mkdir -p ../$repo
-        ( cd "../$repo"; "$fun" "$repo" )
+        cd "../$repo"
+        "$fun" "$repo"
+        cd "$here"
     done
 
-    for ppp in $(pidFamily); do
-        wait $ppp || :
-    done >/dev/null 2>&1
+    wait
 }
 getBranch() {
     printf "[%s]='%s' " "$1" "$(git status | egrep "^On branch " | sed 's/On branch //')"
@@ -101,28 +90,25 @@ listRemoteBranches() {
     printf "%s " $rst
 }
 ###########################################################################################################################
-clone() {
+cloneFetchPull() {
     local repo="$1"; shift
+    (
+        if [[ ! -d ".git" ]]; then
+            printf "cloning %s..." "$repo"
+            (
+                git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
+                cp -R TMP_GIT/. .
+                rm -rf TMP_GIT
+                if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^develop$')" ]]; then
+                    git checkout develop
+                fi
+            ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
+        fi
+        git fetch --progress --prune --all >/dev/null 2>&1
+        git pull --all --ff-only 2>&1 | egrep "(file changed|insertions|deletions)" | sed "s/^/$repo: /" || :
 
-    if [[ ! -d ".git" ]]; then
-        printf "cloning %s..." "$repo"
-        (
-            git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
-            cp -R TMP_GIT/. .
-            rm -rf TMP_GIT
-            if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^develop$')" ]]; then
-                git checkout develop
-            fi
-        ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
-    fi
-}
-fetch() {
-    (git fetch --progress --prune --all) >/dev/null 2>&1 &
-}
-pull() {
-    local repo="$1"; shift
-
-    (git pull --all --ff-only 2>&1 | egrep "(file changed|insertions|deletions)" | sed "s/^/$repo: /")&
+        echo "# done: $repo" 1>&2
+    )&
 }
 projectInfo() {
     local repo="$1"; shift
@@ -196,16 +182,8 @@ main() {
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
     echo
-    echo "############################################ clone..."
-    forAllProjects clone
-
-    echo
-    echo "############################################ fetch..."
-    forAllProjects fetch
-
-    echo
-    echo "############################################ pull..."
-    forAllProjects pull
+    echo "############################################ clone/fetch/pull..."
+    forAllProjects cloneFetchPull
 
     echo
     printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
