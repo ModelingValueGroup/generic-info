@@ -36,7 +36,8 @@ ask() {
     local msg="$1"; shift
 
     echo
-    while ! [[ "${REPLY:-}" =~ ^[YyNn]$ ]]; do
+    REPLY="x"
+    while ! [[ "$REPLY" =~ ^[YyNn]$ || "$REPLY" == "" ]]; do
         read -p "$msg? (N/y) " -n 1 -r
         echo
     done
