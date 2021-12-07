@@ -27,10 +27,11 @@ repoSeq=(
     cds-runtime
     cdm
 )
+USE_GRADLE_VERSION=7.3.1
 
 ###########################################################################################################################
 numLines() {
-    wc -l | sed 's/ //g;s/^0$/./'
+    wc -l | sed 's/ //g;s/^0$/ /'
 }
 ask() {
     local msg="$1"; shift
@@ -91,6 +92,11 @@ listRemoteBranches() {
     printf "%s " $rst
 }
 ###########################################################################################################################
+cloneFetchPullAll() {
+    echo
+    echo "############################################ clone/fetch/pull..."
+    forAllProjects cloneFetchPull
+}
 cloneFetchPull() {
     local repo="$1"; shift
     (
@@ -111,10 +117,27 @@ cloneFetchPull() {
         echo "# done: $repo" 1>&2
     )&
 }
+INFO_FORMAT="   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s"
+INFO_LINE_NUM="0"
+projectInfoSeparator() {
+    : $((INFO_LINE_NUM++))
+    if [[ $INFO_LINE_NUM == 5 ]] || [[ "${1:-}" != "" ]]; then
+        INFO_LINE_NUM=0
+        printf "$INFO_FORMAT +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
+    fi
+}
+projectInfoAll() {
+    echo
+    projectInfoSeparator force
+    printf "$INFO_FORMAT\n" "repos-name" "branch" "version" "ahead" "behind" "dirty" "depbot" "local-branches" "remote-branches"
+    projectInfoSeparator force
+    forAllProjects projectInfo
+    projectInfoSeparator
+}
 projectInfo() {
     local repo="$1"; shift
 
-    printf "   %-30s %-16s %-10s %6s %6s %6s %6s %-50s %-50s\n" \
+    printf "$INFO_FORMAT\n" \
         "$repo" \
         "${branchOf[$repo]}" \
         "${versionOf[$repo]}" \
@@ -124,6 +147,7 @@ projectInfo() {
         "${dependabot[$repo]}" \
         "$(listLocalBranches)" \
         "$(listRemoteBranches)"
+    projectInfoSeparator
 }
 showUnrelated() {
     first=false
@@ -142,35 +166,70 @@ showUnrelated() {
         fi
     done
 }
-clearSnapshotsFromMaven() {
-    local numJars="$(find ~/.m2/repository/snapshots/ -name \*.jar ! -name \*sources\* ! -name \*javadoc\* | wc -l | sed 's/ //g')"
-    if (( $numJars > 0 )) && ask "do you want to remove all published snapshots ($numJars) from the maven repo"; then
-        local d=~/.m2/repository/snapshots/
-        echo "DELETING '$d'..."
-        rm -rf "$d"
+upgradeGradle() {
+    if [[ -f gradlew ]]; then
+        CUR_GRADLE_VERSION="$(./gradlew --version | egrep '^Gradle' | sed 's/.* //')"
+        if [[ -f gradlew ]] && [[ "$CUR_GRADLE_VERSION" != $USE_GRADLE_VERSION ]]; then
+            echo "=============================== UPGRADE GRADLE: $CUR_GRADLE_VERSION => $USE_GRADLE_VERSION: $1 ========================"
+            ./gradlew wrapper --gradle-version $USE_GRADLE_VERSION
+        fi
     fi
 }
-cleanPublishTest() {
+upgradeGradleAll() {
+    forAllProjects upgradeGradle
+}
+clearSnapshots() {
+    for dir in \
+            ~/.m2/repository/snapshots/ \
+            ~/.gradle/caches/modules-2/files-2.1/snapshots.org.modelingvalue/ \
+        ; do
+        local numJars="$(find $dir -name \*.jar ! -name \*sources\* ! -name \*javadoc\* | wc -l | sed 's/ //g')"
+        if (( $numJars > 0 )) && ask "do you want to remove $numJars published snapshot jars from the $dir"; then
+            echo "DELETING '$dir'..."
+            rm -rf "$dir"
+        fi
+    done
+}
+cleanPublishTestAll() {
     if ask "do you want to clean - publish - test"; then
         date
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
         for repo in "${repoSeq[@]}"; do
             (   cd ../$repo
-                printf "\n=========================== CLEAN  : %s ===========================\n" "$(basename "$(pwd)")"
+                printf "=========================== CLEAN  : %s ===========================\n" "$(basename "$(pwd)")"
                 ./gradlew clean
-            )
+                printf "+++++++++++++++++++++++++++ CLEAN  : %s +++++++++++++++++++++++++++\n\n\n\n" "$(basename "$(pwd)")"
+            )&
         done
+        wait
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
         for repo in "${repoSeq[@]}"; do
             (   cd ../$repo
-                printf "\n=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
+                printf "=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
                 ./gradlew publish
+                printf "+++++++++++++++++++++++++++ PUBLISH: %s +++++++++++++++++++++++++++\n" "$(basename "$(pwd)")"
             )
         done
+        wait
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+        for d in $(find .. -name \*kts -exec egrep -q register".*"gatherRuntimeJars {} \; -print | sed 's|/[^/]*$||'); do
+            (   cd $d
+                printf "=========================== GATHER : %s ===========================\n" "$(basename "$(pwd)")"
+                gradle gatherRuntimeJars
+                printf "+++++++++++++++++++++++++++ GATHER : %s +++++++++++++++++++++++++++\n\n\n\n" "$(basename "$(pwd)")"
+            )&
+        done
+        wait
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
         for repo in "${repoSeq[@]}"; do
             (   cd ../$repo
-                printf "\n=========================== TEST   : %s ===========================\n" "$(basename "$(pwd)")"
+                printf "=========================== TEST   : %s ===========================\n" "$(basename "$(pwd)")"
                 ./gradlew test
-            )
+                printf "+++++++++++++++++++++++++++ TEST   : %s +++++++++++++++++++++++++++\n\n\n\n" "$(basename "$(pwd)")"
+            )&
         done
+        wait
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
         date
     fi
 }
@@ -182,14 +241,8 @@ main() {
     eval   "workflowOf=( $(printf "[%s]=%s%.s " "${repoList[@]}") )"
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
-    echo
-    echo "############################################ clone/fetch/pull..."
-    forAllProjects cloneFetchPull
+    cloneFetchPullAll
 
-    echo
-    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
-    printf "   %-30s %-16s %-10s %6s %6s %6s %6s %-50s %-50s\n" "repos-name" "branch" "version" "ahead" "behind" "dirty" "depbot" "local-branches" "remote-branches"
-    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     declare -A branchOf versionOf aheadOf behindOf dirtyOf dependabot
     eval     "branchOf=( $(forAllProjects getBranch       ) )"
     eval    "versionOf=( $(forAllProjects getVersion      ) )"
@@ -198,12 +251,11 @@ main() {
     eval      "dirtyOf=( $(forAllProjects getNumDirty     ) )"
     eval   "dependabot=( $(forAllProjects getNumDependabot) )"
 
-    forAllProjects projectInfo
-    printf "   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
-
+    projectInfoAll
     showUnrelated
-    clearSnapshotsFromMaven
-    cleanPublishTest
+    upgradeGradleAll
+    clearSnapshots
+    cleanPublishTestAll
 }
 
 ###########################################################################################################################
