@@ -27,7 +27,7 @@ repoSeq=(
     cds-runtime
     cdm
 )
-USE_GRADLE_VERSION=7.3.1
+USE_GRADLE_VERSION=7.4
 
 ###########################################################################################################################
 numLines() {
@@ -183,55 +183,68 @@ clearSnapshots() {
             ~/.m2/repository/snapshots/ \
             ~/.gradle/caches/modules-2/files-2.1/snapshots.org.modelingvalue/ \
         ; do
-        local numJars="$(find $dir -name \*.jar ! -name \*sources\* ! -name \*javadoc\* | wc -l | sed 's/ //g')"
-        if (( $numJars > 0 )) && ask "do you want to remove $numJars published snapshot jars from the $dir"; then
-            echo "DELETING '$dir'..."
-            rm -rf "$dir"
+        if [[ -d "$dir" ]]; then
+            local numJars="$(find $dir -name \*.jar ! -name \*sources\* ! -name \*javadoc\* | wc -l | sed 's/ //g')"
+            if (( $numJars > 0 )) && ask "do you want to remove $numJars published snapshot jars from the $dir"; then
+                echo "DELETING '$dir'..."
+                rm -rf "$dir"
+            fi
         fi
     done
 }
 cleanPublishTestAll() {
-    if ask "do you want to clean - publish - test"; then
-        date
-        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+    date
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+    if ask "do you want to clean"; then
         for repo in "${repoSeq[@]}"; do
             (   cd ../$repo
-                printf "=========================== CLEAN  : %s ===========================\n" "$(basename "$(pwd)")"
+                printf ">>>>=========================== CLEAN  : %s ===========================\n" "$(basename "$(pwd)")"
                 ./gradlew clean
-                printf "+++++++++++++++++++++++++++ CLEAN  : %s +++++++++++++++++++++++++++\n\n\n\n" "$(basename "$(pwd)")"
+                find . -type d -name classes_gen -exec rm -rf {} +
+                find . -type d -name source_gen  -exec rm -rf {} +
+                find . -type d -name source_gen.caches -exec rm -rf {} +
+                printf "<<<<=========================== CLEAN  : %s ===========================\n\n\n\n\n" "$(basename "$(pwd)")"
             )&
         done
         wait
+        for repo in "${repoSeq[@]}"; do
+            (   cd ../$repo
+                if [[ -d build ]]; then
+                    printf "\n\n!!!!!!!!!!!!!!! WARNING: build dir in $repo was not properly cleaned, deleting it now"
+                    rm -rf build
+                fi
+            )
+        done
+    fi
+    if ask "do you want to publish and gather"; then
         printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
         for repo in "${repoSeq[@]}"; do
             (   cd ../$repo
-                printf "=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
+                printf ">>>>=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
                 ./gradlew publish
-                printf "+++++++++++++++++++++++++++ PUBLISH: %s +++++++++++++++++++++++++++\n" "$(basename "$(pwd)")"
+                for d in $(find * -name '*.kts' -exec egrep -q "register.*gatherRuntimeJars" {} \; -print | sed 's|/[^/]*$||'); do
+                    printf "    =========================== GATHER: %s ==========================\n" "$d:gatherRuntimeJars"
+                    ./gradlew ${d/*.kts/}:gatherRuntimeJars
+                done
+                printf "<<<<=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
             )
         done
         wait
-        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
-        for d in $(find .. -name \*kts -exec egrep -q register".*"gatherRuntimeJars {} \; -print | sed 's|/[^/]*$||'); do
-            (   cd $d
-                printf "=========================== GATHER : %s ===========================\n" "$(basename "$(pwd)")"
-                gradle gatherRuntimeJars
-                printf "+++++++++++++++++++++++++++ GATHER : %s +++++++++++++++++++++++++++\n\n\n\n" "$(basename "$(pwd)")"
-            )&
-        done
-        wait
+    fi
+    if ask "do you want to test"; then
         printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
         for repo in "${repoSeq[@]}"; do
             (   cd ../$repo
-                printf "=========================== TEST   : %s ===========================\n" "$(basename "$(pwd)")"
+                printf ">>>>=========================== TEST   : %s ===========================\n" "$(basename "$(pwd)")"
                 ./gradlew test
-                printf "+++++++++++++++++++++++++++ TEST   : %s +++++++++++++++++++++++++++\n\n\n\n" "$(basename "$(pwd)")"
+                printf "<<<<=========================== TEST   : %s ===========================\n\n\n\n\n" "$(basename "$(pwd)")"
             )&
         done
         wait
-        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
-        date
+        ls -l ../cdm/build/artifacts/CDM/CDM.zip ../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip
     fi
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+    date
 }
 ###########################################################################################################################
 main() {
@@ -260,3 +273,5 @@ main() {
 
 ###########################################################################################################################
 main "$@"
+
+echo "cp ../cdm/build/artifacts/CDM/CDM.zip ../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip ~/Downloads"
