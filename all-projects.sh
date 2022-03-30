@@ -35,7 +35,7 @@ numLines() {
 }
 askWhatToDo() {
     REPLY="x"
-    while ! [[ "$REPLY" =~ ^[0-4]$ ]]; do
+    while ! [[ "$REPLY" =~ ^[0-45]$ ]]; do
         read -p "$(printf "\n  0 - overview only\n  1 - pull\n  2 - pull clean\n  3 - pull clean build\n  4 - pull       build\n  5 - pull clean build test\nwhat to do? [0] ")" -n 1 -r
         echo 1>&2
         if [[ "$REPLY" == "" ]]; then
@@ -262,7 +262,7 @@ main() {
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
     cloneFetchAll
-    if [[ $whattodo =~ [1234] ]]; then
+    if [[ $whattodo =~ [12345] ]]; then
         pullAll
     fi
 
