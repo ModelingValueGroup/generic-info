@@ -36,7 +36,7 @@ genLastCommitBadge() {
     local   repo="$1"; shift
     local branch="$1"; shift
 
-    if curl -f "https://github.com/$MVG/$repo" 2>&1 > /dev/null; then
+    if curl -f --silent "https://github.com/$MVG/$repo" -o /dev/null > /dev/null 2>&1 ; then
         genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$branch?style=for-the-badge"
     else
         echo "_private_"
