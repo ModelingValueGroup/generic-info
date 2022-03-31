@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## (C) Copyright 2018-2022 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 ##                                                                                                                     ~
@@ -43,19 +43,19 @@ genRepo() {
     local   action="$1"; shift
     local   branch="$1"; shift
 
-    local isPrivate="$(curl -f --silent "https://github.com/$MVG/$repo" -o /dev/null > /dev/null 2>&1 && echo true || :)"
-    
-    local col1="$(genLink "$repo"                                    "https://github.com/$MVG/$repo")"
-    local col2="$(genLink "!$(genLastCommitBadge "$repo" "$branch")" "https://github.com/$MVG/$repo")"
+    local isPrivate="$(curl -f --silent "https://github.com/$MVG/$repo" -o /dev/null > /dev/null 2>&1 && echo false || echo true)"
+
+    local col1="$(genLink "$repo"                                               "https://github.com/$MVG/$repo"         )"
+    local col2="$(genLink "!$(genLastCommitBadge "$repo" "$branch"          )"  "https://github.com/$MVG/$repo"         )"
+    local col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master" )"  "https://github.com/$MVG/$repo/actions" )"
+    local col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop")"  "https://github.com/$MVG/$repo/actions" )"
+
+    if [[ "$isPrivate" == true ]]; then
+        col2="_private_"
+    fi
     if [[ "$action" == "-" ]]; then
-        local col3=""
-        local col4=""
-    elif [[ $isPrivate ]]; then
-        local col3="_private_"
-        local col4="$(genLink "!$(genStatusBadge "$repo" "$action" "develop")" "https://github.com/$MVG/$repo/actions")"
-    else
-        local col3="$(genLink "!$(genStatusBadge "$repo" "$action" "master" )" "https://github.com/$MVG/$repo/actions")"
-        local col4="$(genLink "!$(genStatusBadge "$repo" "$action" "develop")" "https://github.com/$MVG/$repo/actions")"
+        col3=""
+        col4=""
     fi
 
     echo "| $col1 | $col2 | $col3 | $col4 |"
