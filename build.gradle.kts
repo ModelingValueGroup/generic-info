@@ -16,5 +16,5 @@
 defaultTasks("mvgcorrect");
 
 plugins {
-    id("org.modelingvalue.gradle.mvgplugin") version "1.1.1"
+    id("org.modelingvalue.gradle.mvgplugin") version "1.1.3"
 }
