@@ -30,13 +30,17 @@ genStatusBadge() {
     local action="$1"; shift
     local branch="$1"; shift
 
-   genLink "" "https://github.com/$MVG/$repo/actions/workflows/$action/badge.svg?branch=$branch"
+    genLink "" "https://github.com/$MVG/$repo/actions/workflows/$action/badge.svg?branch=$branch"
 }
 genLastCommitBadge() {
     local   repo="$1"; shift
     local branch="$1"; shift
 
-    genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$branch?style=for-the-badge"
+    if curl -f "https://github.com/$MVG/$repo" 2>&1 > /dev/null; then
+        genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$branch?style=for-the-badge"
+    else
+        echo "_private_"
+    fi
 }
 genRepo() {
     local     repo="$1"; shift
