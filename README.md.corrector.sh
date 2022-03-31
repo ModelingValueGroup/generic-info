@@ -36,25 +36,26 @@ genLastCommitBadge() {
     local   repo="$1"; shift
     local branch="$1"; shift
 
-    if curl -f --silent "https://github.com/$MVG/$repo" -o /dev/null > /dev/null 2>&1 ; then
-        genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$branch?style=for-the-badge"
-    else
-        echo "_private_"
-    fi
+    genLink "GitHub last commit" "https://img.shields.io/github/last-commit/$MVG/$repo/$branch?style=for-the-badge"
 }
 genRepo() {
     local     repo="$1"; shift
     local   action="$1"; shift
     local   branch="$1"; shift
 
-    local col1="$(genLink "$repo"                                                         "https://github.com/$MVG/$repo")"
-    local col2="$(genLink "!$(genLastCommitBadge "$repo" "$branch"                   )"   "https://github.com/$MVG/$repo"        )"
-    if [[ "$action" != "-" ]]; then
-        local col3="$(genLink "!$(genStatusBadge     "$repo" "$action" "master"          )"   "https://github.com/$MVG/$repo/actions")"
-        local col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop"         )"   "https://github.com/$MVG/$repo/actions")"
-    else
+    local isPrivate="$(curl -f --silent "https://github.com/$MVG/$repo" -o /dev/null > /dev/null 2>&1 && echo true || :)"
+    
+    local col1="$(genLink "$repo"                                    "https://github.com/$MVG/$repo")"
+    local col2="$(genLink "!$(genLastCommitBadge "$repo" "$branch")" "https://github.com/$MVG/$repo")"
+    if [[ "$action" == "-" ]]; then
         local col3=""
         local col4=""
+    elif [[ $isPrivate ]]; then
+        local col3="_private_"
+        local col4="$(genLink "!$(genStatusBadge "$repo" "$action" "develop")" "https://github.com/$MVG/$repo/actions")"
+    else
+        local col3="$(genLink "!$(genStatusBadge "$repo" "$action" "master" )" "https://github.com/$MVG/$repo/actions")"
+        local col4="$(genLink "!$(genStatusBadge "$repo" "$action" "develop")" "https://github.com/$MVG/$repo/actions")"
     fi
 
     echo "| $col1 | $col2 | $col3 | $col4 |"
