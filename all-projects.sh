@@ -27,16 +27,20 @@ repoSeq=(
     cds-runtime
     cdm
 )
-USE_GRADLE_VERSION=7.4
+TO_USE_GRADLE_VERSION="7.4.2"
+LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version')"
 
 ###########################################################################################################################
 numLines() {
     wc -l | sed 's/ //g;s/^0$/ /'
 }
+sec() {
+    date +%s
+}
 askWhatToDo() {
     REPLY="x"
     while ! [[ "$REPLY" =~ ^[0-45]$ ]]; do
-        read -p "$(printf "\n  0 - overview only\n  1 - pull\n  2 - pull clean\n  3 - pull clean build\n  4 - pull       build\n  5 - pull clean build test\nwhat to do? [0] ")" -n 1 -r
+        read -p "$(printf "\n  0 - overview only\n  1 - pull\n  2 - pull clean\n  3 - pull clean build\n  4 - pull       build\n  5 - pull clean build test\n\nwhat to do? [0] ")" -n 1 -r
         echo 1>&2
         if [[ "$REPLY" == "" ]]; then
             REPLY=0
@@ -73,23 +77,31 @@ getNumDirty() {
     printf "[%s]='%s' " "$1" "$(git status | egrep '^\t(new file|modified):   ' | numLines || :)"
 }
 getNumDependabot() {
-    printf "[%s]='%s' " "$1" "$(listRemoteBranches | tr ' ' '\n' | egrep "^dependabot/" | numLines || :)"
+    printf "[%s]='%s' " "$1" "$(listDependabotBranches | tr ' ' '\n' | numLines || :)"
 }
 listLocalBranches() {
     local raw="$(git branch | sed 's|..||' | sort)"
     local rst="$(egrep -v '^(master|develop)$' <<<"$raw")"
 
-    if [[ "$(fgrep -x develop <<<"$raw")" ]]; then printf "develop "; fi
-    if [[ "$(fgrep -x master  <<<"$raw")" ]]; then printf "master " ; fi
+    if [[ "$(fgrep -x develop <<<"$raw")" ]]; then printf "d "; else printf ". "; fi
+    if [[ "$(fgrep -x master  <<<"$raw")" ]]; then printf "m "; else printf ". "; fi
     printf "%s " $rst
 }
 listRemoteBranches() {
     local raw="$(git branch -r | sed '/^  origin[/]HEAD/d;s|..origin/||' | sort)"
-    local rst="$(egrep -v '^(master|develop)$' <<<"$raw")"
+    local rst="$(egrep -v '^(master|develop)$' <<<"$raw" | egrep -v '^dependabot/.*')"
 
-    if [[ "$(fgrep -x develop <<<"$raw")" ]]; then printf "develop "; fi
-    if [[ "$(fgrep -x master  <<<"$raw")" ]]; then printf "master " ; fi
+    if [[ "$(fgrep -x develop <<<"$raw")" ]]; then printf "d "; else printf ". "; fi
+    if [[ "$(fgrep -x master  <<<"$raw")" ]]; then printf "m "; else printf ". "; fi
     printf "%s " $rst
+}
+listDependabotBranches() {
+    local raw="$(git branch -r | sed '/^  origin[/]HEAD/d;s|..origin/||' | sort)"
+    local rst="$(egrep -v '^(master|develop)$' <<<"$raw" | egrep '^dependabot/.*' | sed 's|^dependabot/[^/]*/[^/]*/||')"
+
+    if [[ "$rst" != "" ]]; then
+        printf "%s " $rst
+    fi
 }
 ###########################################################################################################################
 cloneFetchAll() {
@@ -159,6 +171,9 @@ projectInfo() {
         "${dependabot[$repo]:-?}" \
         "$(listLocalBranches)" \
         "$(listRemoteBranches)"
+    if [[ "${dependabot[$repo]:- }" != " " ]]; then
+        printf "                                                                                                                                                 %s\n" $(listDependabotBranches)
+    fi
     projectInfoSeparator
 }
 showUnrelated() {
@@ -174,19 +189,20 @@ showUnrelated() {
 }
 upgradeGradleAll() {
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE GRADLE CHECK\n"
+    printf "  latest gradle version    = %s\n" "$LATEST_GRADLE_VERSION"
+    printf "  requested gradle version = %s\n" "$TO_USE_GRADLE_VERSION"
     forAllProjects upgradeGradle
 }
 upgradeGradle() {
     if [[ -f gradlew ]]; then
-        CUR_GRADLE_VERSION="$(./gradlew --version | egrep '^Gradle' | sed 's/.* //')"
-        if [[ -f gradlew ]] && [[ "$CUR_GRADLE_VERSION" != $USE_GRADLE_VERSION ]]; then
-            echo "=============================== UPGRADE GRADLE: $CUR_GRADLE_VERSION => $USE_GRADLE_VERSION: $1 ========================"
-            ./gradlew wrapper --gradle-version $USE_GRADLE_VERSION
+        PROJECT_GRADLE_VERSION="$(./gradlew --version | egrep '^Gradle' | sed 's/.* //')"
+        if [[ -f gradlew ]] && [[ "$PROJECT_GRADLE_VERSION" != $TO_USE_GRADLE_VERSION ]]; then
+            echo "  upgrading gradle: $PROJECT_GRADLE_VERSION => $TO_USE_GRADLE_VERSION: for project $1"
+            ./gradlew wrapper --gradle-version $TO_USE_GRADLE_VERSION
         fi
     fi
 }
 cleanAll() {
-    date
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ CLEAN\n"
     for dir in \
             ~/.m2/repository/snapshots/ \
@@ -214,14 +230,13 @@ cleanAll() {
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
             if [[ -d build ]]; then
-                printf "\n\n!!!!!!!!!!!!!!! WARNING: build dir in $repo was not properly cleaned, deleting it now"
+                printf "\n\n!!!!!!!!!!!!!!! WARNING: build dir in $repo was not properly cleaned, deleting it now\n"
                 rm -rf build
             fi
         )
     done
 }
 publishAll() {
-    date
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ BUILD\n"
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
@@ -237,9 +252,14 @@ publishAll() {
             printf "<<<<=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
         )
     done
+    if [[ "$USER" == tom ]]; then
+        echo
+        echo "to copy the plugins to your downloads folder:"
+        echo "     cp ../cdm/build/artifacts/CDM/CDM.zip ../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip ~/Downloads"
+        echo
+    fi
 }
 testAll() {
-    date
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ TEST\n"
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
@@ -278,21 +298,29 @@ main() {
     echo
     upgradeGradleAll
 
+    local c0="$(sec)"
     if [[ $whattodo =~ [235] ]]; then
         cleanAll
     fi
+    local c1="$(sec)"
+    local p0="$(sec)"
     if [[ $whattodo =~ [345] ]]; then
         publishAll
     fi
+    local p1="$(sec)"
+    local t0="$(sec)"
     if [[ $whattodo =~ [5] ]]; then
         testAll
     fi
+    local t1="$(sec)"
 
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+    printf "  clean   time: %4d sec\n" "$((c1-c0))"
+    printf "  publish time: %4d sec\n" "$((p1-p0))"
+    printf "  test    time: %4d sec\n" "$((t1-t0))"
+    printf "  TOTAL   time: %4d sec\n" "$((t1-c0))"
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DONE\n"
-    date
 }
 
 ###########################################################################################################################
 main "$@"
-
-echo "cp ../cdm/build/artifacts/CDM/CDM.zip ../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip ~/Downloads"

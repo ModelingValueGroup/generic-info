@@ -51,7 +51,7 @@ genRepo() {
     local col4="$(genLink "!$(genStatusBadge     "$repo" "$action" "develop")"  "https://github.com/$MVG/$repo/actions" )"
 
     if [[ "$isPrivate" == true ]]; then
-        col2="_private_"
+        col2="_private repo_"
     fi
     if [[ "$action" == "-" ]]; then
         col3=""
