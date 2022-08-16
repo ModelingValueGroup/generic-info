@@ -27,7 +27,7 @@ repoSeq=(
     cds-runtime
     cdm
 )
-TO_USE_GRADLE_VERSION="7.4.2"
+TO_USE_GRADLE_VERSION="7.5"
 LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version')"
 
 ###########################################################################################################################
@@ -195,7 +195,7 @@ upgradeGradleAll() {
 }
 upgradeGradle() {
     if [[ -f gradlew ]]; then
-        PROJECT_GRADLE_VERSION="$(./gradlew --version | egrep '^Gradle' | sed 's/.* //')"
+        PROJECT_GRADLE_VERSION="$(./gradlew --version 2>&1 | egrep '^Gradle' | sed 's/.* //' || echo "unknown")"
         if [[ -f gradlew ]] && [[ "$PROJECT_GRADLE_VERSION" != $TO_USE_GRADLE_VERSION ]]; then
             echo "  upgrading gradle: $PROJECT_GRADLE_VERSION => $TO_USE_GRADLE_VERSION: for project $1"
             ./gradlew wrapper --gradle-version $TO_USE_GRADLE_VERSION
