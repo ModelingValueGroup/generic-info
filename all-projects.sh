@@ -14,9 +14,10 @@
 ##     Arjan Kok, Carel Bast                                                                                           ~
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-set -euo pipefail
 #set -x
+set -euo pipefail
 
+TO_USE_GRADLE_VERSION="7.5.1"
 repoSeq=(
     sync-proxy
     mvg-json
@@ -27,10 +28,9 @@ repoSeq=(
     cds-runtime
     cdm
 )
-TO_USE_GRADLE_VERSION="7.5"
-LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version')"
 
 ###########################################################################################################################
+LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version')"
 numLines() {
     wc -l | sed 's/ //g;s/^0$/ /'
 }
