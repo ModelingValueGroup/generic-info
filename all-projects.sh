@@ -149,6 +149,15 @@ projectInfoSeparator() {
 projectInfoAll() {
     INFO_FORMAT="   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s"
     INFO_LINE_NUM="0"
+
+    declare -A branchOf versionOf aheadOf behindOf dirtyOf dependabot
+    eval     "branchOf=( $(forAllProjects getBranch       ) )"
+    eval    "versionOf=( $(forAllProjects getVersion      ) )"
+    eval      "aheadOf=( $(forAllProjects getNumAhead     ) )"
+    eval     "behindOf=( $(forAllProjects getNumBehind    ) )"
+    eval      "dirtyOf=( $(forAllProjects getNumDirty     ) )"
+    eval   "dependabot=( $(forAllProjects getNumDependabot) )"
+
     echo
     projectInfoSeparator force
     printf "$INFO_FORMAT\n" "repos-name" "branch" "version" "ahead" "behind" "dirty" "depbot" "local-branches" "remote-branches"
@@ -157,6 +166,7 @@ projectInfoAll() {
     projectInfoSeparator force
     showUnrelated
     projectInfoSeparator force
+    echo
 }
 projectInfo() {
     local repo="$1"; shift
@@ -303,18 +313,9 @@ main() {
         pullAll
     fi
 
-    declare -A branchOf versionOf aheadOf behindOf dirtyOf dependabot
-    eval     "branchOf=( $(forAllProjects getBranch       ) )"
-    eval    "versionOf=( $(forAllProjects getVersion      ) )"
-    eval      "aheadOf=( $(forAllProjects getNumAhead     ) )"
-    eval     "behindOf=( $(forAllProjects getNumBehind    ) )"
-    eval      "dirtyOf=( $(forAllProjects getNumDirty     ) )"
-    eval   "dependabot=( $(forAllProjects getNumDependabot) )"
-
     projectInfoAll
-    echo
-    upgradeGradleAll
 
+    upgradeGradleAll
 
     if [[ $whattodo =~ [2345] ]]; then
         local T0="$(sec)"
