@@ -39,8 +39,8 @@ sec() {
 }
 askWhatToDo() {
     REPLY="x"
-    while ! [[ "$REPLY" =~ ^[0-45]$ ]]; do
-        read -p "$(printf "\n  0 - overview only\n  1 - pull\n  2 - pull clean\n  3 - pull clean build\n  4 - pull       build\n  5 - pull clean build test\n\nwhat to do? [0] ")" -n 1 -r
+    while ! [[ "$REPLY" =~ ^[0-6]$ ]]; do
+        read -p "$(printf "\n  0 - overview only\n  1 - pull\n  2 - pull clean\n  3 - pull clean build\n  4 - pull       build\n  5 - pull clean build test\n  6 - list recent commits on develop\n\nwhat to do? [0] ")" -n 1 -r
         echo 1>&2
         if [[ "$REPLY" == "" ]]; then
             REPLY=0
@@ -271,6 +271,23 @@ testAll() {
     wait
     ls -l ../cdm/build/artifacts/CDM/CDM.zip ../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip
 }
+logAll() {
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ LOG\n"
+    rm -f /tmp/generic-info-log-*
+    for repo in "${repoSeq[@]}"; do
+        (   cd ../$repo
+            logOne $repo | fgrep -v '|automation|'> /tmp/generic-info-log-$repo
+        )&
+    done
+    wait
+    cat /tmp/generic-info-log-* | sort | tr '|\n' '\0\0' | xargs -0 -n 6 printf "%.s%s %s - %-25s %-25s %s\n"
+    rm -f /tmp/generic-info-log-*
+}
+logOne() {
+    local repo="$1"; shift
+
+    git log origin/develop --since="2 weeks ago" --first-parent --no-merges --date=format:"%s|%Y-%m-%d|%H:%M:%S" --pretty=tformat:"%cd|$repo|%an|%s"
+}
 ###########################################################################################################################
 main() {
     whattodo="$(askWhatToDo)"
@@ -298,28 +315,44 @@ main() {
     echo
     upgradeGradleAll
 
-    local c0="$(sec)"
-    if [[ $whattodo =~ [235] ]]; then
-        cleanAll
-    fi
-    local c1="$(sec)"
-    local p0="$(sec)"
-    if [[ $whattodo =~ [345] ]]; then
-        publishAll
-    fi
-    local p1="$(sec)"
-    local t0="$(sec)"
-    if [[ $whattodo =~ [5] ]]; then
-        testAll
-    fi
-    local t1="$(sec)"
 
-    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
-    printf "  clean   time: %4d sec\n" "$((c1-c0))"
-    printf "  publish time: %4d sec\n" "$((p1-p0))"
-    printf "  test    time: %4d sec\n" "$((t1-t0))"
-    printf "  TOTAL   time: %4d sec\n" "$((t1-c0))"
-    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DONE\n"
+    if [[ $whattodo =~ [2345] ]]; then
+        local T0="$(sec)"
+        if [[ $whattodo =~ [235] ]]; then
+            local c0="$(sec)"
+            cleanAll
+            local c1="$(sec)"
+        fi
+        if [[ $whattodo =~ [345] ]]; then
+            local p0="$(sec)"
+            publishAll
+            local p1="$(sec)"
+        fi
+        if [[ $whattodo =~ [5] ]]; then
+            local t0="$(sec)"
+            testAll
+            local t1="$(sec)"
+        fi
+        local T1="$(sec)"
+
+        if [[ $whattodo =~ [2345] ]]; then
+            printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+            if [[ $whattodo =~ [235] ]]; then
+                printf "  clean   time: %4d sec\n" "$((c1-c0))"
+            fi
+            if [[ $whattodo =~ [345] ]]; then
+                printf "  publish time: %4d sec\n" "$((p1-p0))"
+            fi
+            if [[ $whattodo =~ [5] ]]; then
+                printf "  test    time: %4d sec\n" "$((t1-t0))"
+            fi
+            printf "  TOTAL   time: %4d sec\n" "$((T1-T0))"
+            printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DONE\n"
+        fi
+    fi
+    if [[ $whattodo =~ [6] ]]; then
+        logAll
+    fi
 }
 
 ###########################################################################################################################
