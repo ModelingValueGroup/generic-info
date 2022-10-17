@@ -80,6 +80,10 @@ gen() {
         fi
     done
 }
+cat <<"EOF"
+N.B. see below if you want to easily build the dclare stack from scratch
+
+EOF
 cat <<EOF
 | repository | last commit  | master | develop |
 |------------|--------------|--------|---------|
@@ -90,4 +94,28 @@ $(gen ":two: **\`examples\`**"      "${repoListExamples[@]}")
 $(gen ":three: **\`support\`**"     "${repoListSupport[@]}")
 |            |              |        |         |
 $(gen ":four: **\`aux\`**"          "${repoListAux[@]}")
+EOF
+cat <<"EOF"
+
+
+## How to easily build the dclare stack from scratch
+Our dclare stack is made out of multiple github repositories.
+To easily build the whole stack do the following:
+- find your github token that has the authority to access the github-package-registry or make a new token if you prefer (sorry, github requires this)
+- add the following line to your `~/.gradle/gradle.properties` file:
+```
+ALLREP_TOKEN=<github-token>
+```
+- make a fresh directory somewhere that will contain all the projects
+- clone the `generic-info` repo in this new directory
+- cd to the new clone
+- execute `./all-projects.sh` in a bash window
+- you will get a CHUI choice of options, choose '3' to run a full build
+- the script will run for a few minutes
+  - it wil clone the needed projects
+  - it will build them in the right order with gradle
+  - ...and leave the projects build on your disk
+
+BTW: this method will only build the `develop` branch.
+
 EOF
