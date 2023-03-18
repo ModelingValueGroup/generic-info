@@ -17,7 +17,8 @@
 #set -x
 set -euo pipefail
 
-TO_USE_GRADLE_VERSION="7.5.1"
+INTENDED_GRADLE_VERSION="7.6"
+INTENDED_JAVA_MAJOR_VERSION="11"
 repoSeq=(
     sync-proxy
     mvg-json
@@ -30,17 +31,67 @@ repoSeq=(
 )
 
 ###########################################################################################################################
-LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version')"
+LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version'|| :)"
+JAVA_MAJOR_VERSION="$(java  -version 2>&1 | awk -F '"' '/version/ {gsub(/[.].*/,"");print $2}')"
+trap "onError" ERR
+checkIntendedJavaVersion() {
+    if [[ "$INTENDED_JAVA_MAJOR_VERSION" != "$JAVA_MAJOR_VERSION" ]]; then
+        if [[ -x "/usr/libexec/java_home" ]]; then
+            local oldVersion="$JAVA_MAJOR_VERSION"
+            export JAVA_HOME=`/usr/libexec/java_home -v $INTENDED_JAVA_MAJOR_VERSION`
+            JAVA_MAJOR_VERSION="$(java  -version 2>&1 | awk -F '"' '/version/ {gsub(/[.].*/,"");print $2}')"
+            if [[ "$INTENDED_JAVA_MAJOR_VERSION" != "$JAVA_MAJOR_VERSION" ]]; then
+                echo "ERROR: can not select correct java version ($INTENDED_JAVA_MAJOR_VERSION) with /usr/libexec/java_home"
+                exit 55
+            fi
+            echo "INFO: switched java version from $oldVersion to $JAVA_MAJOR_VERSION"
+        else
+            echo "ERROR: incorrect java version active $JAVA_MAJOR_VERSION i.s.o. $INTENDED_JAVA_MAJOR_VERSION"
+        fi
+    else
+        echo "INFO: correct java version installed: $INTENDED_JAVA_MAJOR_VERSION"
+    fi
+}
+playSound() {
+    afplay "done.wav"& sleep 0.3
+    afplay "done.wav"& sleep 0.3
+    afplay "done.wav"& sleep 0.3
+}
+onError() {
+    playSound
+}
 numLines() {
     wc -l | sed 's/ //g;s/^0$/ /'
 }
 sec() {
     date +%s
 }
+
+        all=01234567
+ doOverview=01234567
+     doPull=_12_456_
+    doClean=__234_6_
+  doPublish=___3456_
+     doTest=______6_
+      doLog=_______7
+    doTimes=$doClean$doPublish$doTest
+
 askWhatToDo() {
     REPLY="x"
-    while ! [[ "$REPLY" =~ ^[0-6]$ ]]; do
-        read -p "$(printf "\n  0 - overview only\n  1 - pull\n  2 - pull clean\n  3 - pull clean build\n  4 - pull       build\n  5 - pull clean build test\n  6 - list recent commits on develop\n\nwhat to do? [0] ")" -n 1 -r
+    while ! [[ "$REPLY" =~ ^[$all]$ ]]; do
+        cat <<EOF >&2
+
+    0 - overview only
+    1 - pull
+    2 - pull clean
+    3 -      clean build
+    4 - pull clean build
+    5 - pull       build
+    6 - pull clean build test
+    7 - list recent commits on develop
+
+EOF
+        read -p "what to do? [0] " -n 1 -r
         echo 1>&2
         if [[ "$REPLY" == "" ]]; then
             REPLY=0
@@ -140,15 +191,14 @@ pull() {
     )&
 }
 projectInfoSeparator() {
-    : $((INFO_LINE_NUM++))
-    if [[ $INFO_LINE_NUM == 5 ]] || [[ "${1:-}" != "" ]]; then
-        INFO_LINE_NUM=0
+    local repo="${1:-}"
+
+    if [[ "$repo" == "" ]] || [[ "$repo" == cdm ]] || [[ "$repo" == ex-Sudoku ]]; then
         printf "$INFO_FORMAT +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     fi
 }
 projectInfoAll() {
     INFO_FORMAT="   %-30s %-16s %-10s %-6s %-6s %-6s %-6s %-50s %-50s"
-    INFO_LINE_NUM="0"
 
     declare -A branchOf versionOf aheadOf behindOf dirtyOf dependabot
     eval     "branchOf=( $(forAllProjects getBranch       ) )"
@@ -159,13 +209,13 @@ projectInfoAll() {
     eval   "dependabot=( $(forAllProjects getNumDependabot) )"
 
     echo
-    projectInfoSeparator force
+    projectInfoSeparator
     printf "$INFO_FORMAT\n" "repos-name" "branch" "version" "ahead" "behind" "dirty" "depbot" "local-branches" "remote-branches"
-    projectInfoSeparator force
+    projectInfoSeparator
     forAllProjects projectInfo
-    projectInfoSeparator force
+    projectInfoSeparator
     showUnrelated
-    projectInfoSeparator force
+    projectInfoSeparator
     echo
 }
 projectInfo() {
@@ -184,7 +234,7 @@ projectInfo() {
     if [[ "${dependabot[$repo]:- }" != " " ]]; then
         printf "                                                                                                                                                 %s\n" $(listDependabotBranches)
     fi
-    projectInfoSeparator
+    projectInfoSeparator "$repo"
 }
 showUnrelated() {
     for repo in $(cd ..; eval "ls $(printf " | fgrep -v '%s'" ${repoName[@]})"); do
@@ -199,16 +249,22 @@ showUnrelated() {
 }
 upgradeGradleAll() {
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE GRADLE CHECK\n"
-    printf "  latest gradle version    = %s\n" "$LATEST_GRADLE_VERSION"
-    printf "  requested gradle version = %s\n" "$TO_USE_GRADLE_VERSION"
+    printf "  latest    gradle version = %s\n" "$LATEST_GRADLE_VERSION"
+    printf "  requested gradle version = %s\n" "$INTENDED_GRADLE_VERSION"
+    anyUpgraded=0
     forAllProjects upgradeGradle
+    if [[ $anyUpgraded == 0 ]]; then
+        echo "  ok: all projects use the requested gradle version!"
+    fi
+
 }
 upgradeGradle() {
     if [[ -f gradlew ]]; then
         PROJECT_GRADLE_VERSION="$(./gradlew --version 2>&1 | egrep '^Gradle' | sed 's/.* //' || echo "unknown")"
-        if [[ -f gradlew ]] && [[ "$PROJECT_GRADLE_VERSION" != $TO_USE_GRADLE_VERSION ]]; then
-            echo "  upgrading gradle: $PROJECT_GRADLE_VERSION => $TO_USE_GRADLE_VERSION: for project $1"
-            ./gradlew wrapper --gradle-version $TO_USE_GRADLE_VERSION
+        if [[ -f gradlew ]] && [[ "$PROJECT_GRADLE_VERSION" != $INTENDED_GRADLE_VERSION ]]; then
+            echo "  upgrading gradle: $PROJECT_GRADLE_VERSION => $INTENDED_GRADLE_VERSION: for project $1"
+            ./gradlew wrapper --gradle-version $INTENDED_GRADLE_VERSION
+            anyUpgraded=1
         fi
     fi
 }
@@ -300,16 +356,19 @@ logOne() {
 }
 ###########################################################################################################################
 main() {
+    checkIntendedJavaVersion
+
     whattodo="$(askWhatToDo)"
 
     . ./info.sh
     declare -A workflowOf mainBranchOf
-    eval     "repoName=( $(printf "%s%.s%.s\n"  "${repoList[@]}" | sort) )"
+    pattern="($(printf "%s|" "${repoSeq[@]}" | sed 's/|$//' | tr -d '\n'))"
+    eval     "repoName=( "${repoSeq[@]}" $(printf "%s%.s%.s\n"  "${repoList[@]}" | egrep -v "$pattern" | sort) )"
     eval   "workflowOf=( $(printf "[%s]=%s%.s " "${repoList[@]}") )"
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
     cloneFetchAll
-    if [[ $whattodo =~ [12345] ]]; then
+    if [[ $whattodo =~ [$doPull] ]]; then
         pullAll
     fi
 
@@ -317,43 +376,42 @@ main() {
 
     upgradeGradleAll
 
-    if [[ $whattodo =~ [2345] ]]; then
-        local T0="$(sec)"
-        if [[ $whattodo =~ [235] ]]; then
-            local c0="$(sec)"
-            cleanAll
-            local c1="$(sec)"
-        fi
-        if [[ $whattodo =~ [345] ]]; then
-            local p0="$(sec)"
-            publishAll
-            local p1="$(sec)"
-        fi
-        if [[ $whattodo =~ [5] ]]; then
-            local t0="$(sec)"
-            testAll
-            local t1="$(sec)"
-        fi
-        local T1="$(sec)"
-
-        if [[ $whattodo =~ [2345] ]]; then
-            printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
-            if [[ $whattodo =~ [235] ]]; then
-                printf "  clean   time: %4d sec\n" "$((c1-c0))"
-            fi
-            if [[ $whattodo =~ [345] ]]; then
-                printf "  publish time: %4d sec\n" "$((p1-p0))"
-            fi
-            if [[ $whattodo =~ [5] ]]; then
-                printf "  test    time: %4d sec\n" "$((t1-t0))"
-            fi
-            printf "  TOTAL   time: %4d sec\n" "$((T1-T0))"
-            printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DONE\n"
-        fi
+    local T0="$(sec)"
+    if [[ $whattodo =~ [$doClean] ]]; then
+        local c0="$(sec)"
+        cleanAll
+        local c1="$(sec)"
     fi
-    if [[ $whattodo =~ [6] ]]; then
+    if [[ $whattodo =~ [$doPublish] ]]; then
+        local p0="$(sec)"
+        publishAll
+        local p1="$(sec)"
+    fi
+    if [[ $whattodo =~ [$doTest] ]]; then
+        local t0="$(sec)"
+        testAll
+        local t1="$(sec)"
+    fi
+    local T1="$(sec)"
+
+    if [[ $whattodo =~ [$doTimes] ]]; then
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ TIMING\n"
+        if [[ $whattodo =~ [$doClean] ]]; then
+            printf "  clean   time: %4d sec\n" "$((c1-c0))"
+        fi
+        if [[ $whattodo =~ [$doPublish] ]]; then
+            printf "  publish time: %4d sec\n" "$((p1-p0))"
+        fi
+        if [[ $whattodo =~ [$doTest] ]]; then
+            printf "  test    time: %4d sec\n" "$((t1-t0))"
+        fi
+        printf "  TOTAL   time: %4d sec\n" "$((T1-T0))"
+    fi
+    if [[ $whattodo =~ [$doLog] ]]; then
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ SCANNING GIT LOGS...\n"
         logAll
     fi
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DONE\n"
 }
 
 ###########################################################################################################################
