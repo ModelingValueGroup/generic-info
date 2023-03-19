@@ -53,9 +53,9 @@ checkIntendedJavaVersion() {
     fi
 }
 playSound() {
-    afplay "done.wav"& sleep 0.3
-    afplay "done.wav"& sleep 0.3
-    afplay "done.wav"& sleep 0.3
+    afplay "done.wav" & sleep 0.3
+    afplay "done.wav" & sleep 0.3
+    afplay "done.wav" & sleep 0.3
 }
 onError() {
     playSound
@@ -67,14 +67,16 @@ sec() {
     date +%s
 }
 
-        all=01234567
- doOverview=01234567
-     doPull=_12_456_
-    doClean=__234_6_
-  doPublish=___3456_
-     doTest=______6_
-      doLog=_______7
-    doTimes=$doClean$doPublish$doTest
+        all=012345678
+ doOverview=012345678
+   doGradle=_123456__
+     doPull=_12_456__
+    doClean=__234_6__
+  doPublish=___3456__
+     doTest=______6__
+      doLog=_______7_
+   doToDate=________8
+    doTimes=__23456__
 
 askWhatToDo() {
     REPLY="x"
@@ -89,6 +91,7 @@ askWhatToDo() {
     5 - pull       build
     6 - pull clean build test
     7 - list recent commits on develop
+    8 - move to a date, after reset & develop [CAUTION will trash any changes in workdir]]
 
 EOF
         read -p "what to do? [0] " -n 1 -r
@@ -354,6 +357,36 @@ logOne() {
 
     git log origin/develop --since="2 weeks ago" --first-parent --no-merges --date=format:"%s|%Y-%m-%d|%H:%M:%S" --pretty=tformat:"%cd|$repo|%an|%s"
 }
+toDateAll() {
+    local unclean=()
+    for repo in "${repoSeq[@]}"; do
+        local output=$(cd ../$repo; git status --porcelain)
+        if ! [[ -z "$output" ]]; then
+            unclean+=($repo)
+        fi
+    done
+    if [[ ${#unclean[@]} != 0 ]]; then
+        printf "PROBLEM: the following repos are dirty (clean them first):\n"
+        printf " - %s\n" "${unclean[@]}"
+    else
+        REPLY=
+        while ! [[ $REPLY =~ 20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\ [0-9][0-9]:[0-9][0-9] ]]; do
+            read -p "to what date are we going to time-travel: " -r
+            echo 1>&2
+        done
+        theDate="$REPLY"
+
+        for repo in "${repoSeq[@]}"; do
+            (   cd ../$repo
+                printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ moving %-24s to %s\n" "$repo" "$theDate"
+                git checkout develop
+                echo "===================="
+                git checkout $(git rev-list --before "$theDate" --max-count=1 develop)
+            )
+        done
+        wait
+    fi
+}
 ###########################################################################################################################
 main() {
     checkIntendedJavaVersion
@@ -368,13 +401,22 @@ main() {
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
     cloneFetchAll
+
+    if [[ $whattodo =~ [$doToDate] ]]; then
+        toDateAll
+    fi
+
     if [[ $whattodo =~ [$doPull] ]]; then
         pullAll
     fi
 
-    projectInfoAll
+    if [[ $whattodo =~ [$doOverview] ]]; then
+        projectInfoAll
+    fi
 
-    upgradeGradleAll
+    if [[ $whattodo =~ [$doGradle] ]]; then
+        upgradeGradleAll
+    fi
 
     local T0="$(sec)"
     if [[ $whattodo =~ [$doClean] ]]; then
