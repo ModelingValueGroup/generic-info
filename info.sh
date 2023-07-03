@@ -21,8 +21,8 @@ export MVG=ModelingValueGroup
 #   repo-name                       badge-workflow      badge-branch
 ###########################################################################################################################
 export repoListDclare=(
-    WeAreMoreThenOk                 -                   wanOnly
     cdm                             build.yaml          develop
+    cdm-generator                   build.yaml          develop
     cds-runtime                     build.yaml          develop
     dclareForMPS                    build.yaml          develop
     dclareForJava                   build.yaml          develop

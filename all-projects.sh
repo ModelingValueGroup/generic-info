@@ -28,6 +28,7 @@ repoSeq=(
     dclareForMPS
     cds-runtime
     cdm
+    cdm-generator
 )
 
 ###########################################################################################################################
@@ -91,7 +92,7 @@ askWhatToDo() {
     5 - pull       build
     6 - pull clean build test
     7 - list recent commits on develop
-    8 - move to a date, after reset & develop [CAUTION will trash any changes in workdir]]
+    8 - move to a date, after reset & develop [CAUTION will trash any changes in workdir]
 
 EOF
         read -p "what to do? [0] " -n 1 -r
@@ -116,7 +117,7 @@ forAllProjects() {
     wait
 }
 getBranch() {
-    printf "[%s]='%s' " "$1" "$(git status | egrep "^On branch " | sed 's/On branch //')"
+    printf "[%s]='%s' " "$1" "$(git rev-parse --abbrev-ref HEAD)"
 }
 getVersion() {
     printf "[%s]='%s' " "$1" "$( if [[ ! -f gradle.properties ]]; then echo ''; else egrep '^version[ =]' gradle.properties | sed 's/.*= *//'; fi )"
@@ -128,7 +129,7 @@ getNumBehind() {
     printf "[%s]='%s' " "$1" "$(git log HEAD..origin/${branchOf[$1]} --oneline | numLines)"
 }
 getNumDirty() {
-    printf "[%s]='%s' " "$1" "$(git status | egrep '^\t(new file|modified):   ' | numLines || :)"
+    printf "[%s]='%s' " "$1" "$(git status --porcelain | numLines || :)"
 }
 getNumDependabot() {
     printf "[%s]='%s' " "$1" "$(listDependabotBranches | tr ' ' '\n' | numLines || :)"
@@ -167,7 +168,7 @@ cloneFetch() {
     local repo="$1"; shift
     (
         if [[ ! -d ".git" ]]; then
-            printf "cloning %s..." "$repo"
+            printf "cloning %s...\n" "$repo"
             (
                 git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
                 cp -R TMP_GIT/. .
@@ -196,7 +197,7 @@ pull() {
 projectInfoSeparator() {
     local repo="${1:-}"
 
-    if [[ "$repo" == "" ]] || [[ "$repo" == cdm ]] || [[ "$repo" == ex-Sudoku ]]; then
+    if [[ "$repo" == "" ]] || [[ "$repo" == cdm-generator ]] || [[ "$repo" == ex-Sudoku ]]; then
         printf "$INFO_FORMAT +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     fi
 }
@@ -257,17 +258,19 @@ upgradeGradleAll() {
     anyUpgraded=0
     forAllProjects upgradeGradle
     if [[ $anyUpgraded == 0 ]]; then
-        echo "  ok: all projects use the requested gradle version!"
+        echo "  ok: all projects use the requested gradle version"
     fi
-
 }
 upgradeGradle() {
     if [[ -f gradlew ]]; then
         PROJECT_GRADLE_VERSION="$(./gradlew --version 2>&1 | egrep '^Gradle' | sed 's/.* //' || echo "unknown")"
-        if [[ -f gradlew ]] && [[ "$PROJECT_GRADLE_VERSION" != $INTENDED_GRADLE_VERSION ]]; then
+        if [[ "$PROJECT_GRADLE_VERSION" != $INTENDED_GRADLE_VERSION ]]; then
             echo "  upgrading gradle: $PROJECT_GRADLE_VERSION => $INTENDED_GRADLE_VERSION: for project $1"
             ./gradlew wrapper --gradle-version $INTENDED_GRADLE_VERSION
             anyUpgraded=1
+        #elif [[ $LATEST_GRADLE_VERSION != $INTENDED_GRADLE_VERSION ]]; then
+            #echo "  scanning gradle for upgrade: $PROJECT_GRADLE_VERSION => $LATEST_GRADLE_VERSION: for project $1"
+            #./gradlew help --scan
         fi
     fi
 }
@@ -321,10 +324,21 @@ publishAll() {
             printf "<<<<=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
         )
     done
-    if [[ "$USER" == tom ]]; then
+    if [[ -d ~/Downloads ]]; then
         echo
-        echo "to copy the plugins to your downloads folder:"
-        echo "     cp ../cdm/build/artifacts/CDM/CDM.zip ../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip ~/Downloads"
+        echo "INFO: copying the plugins to your ~/Downloads folder:"
+        for f in \
+                "../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip" \
+                "../cdm/build/artifacts/CDM/CDM.zip" \
+                "../cdm-generator//build/artifacts/CdmGenerator/CdmGenerator.zip" \
+                ; do
+            if [[ -f "$f" ]]; then
+                cp "$f" ~/Downloads
+                echo "   - $(basename "$f")"
+            else
+                echo "   - ERROR: missing plugin file: $f"
+            fi
+        done
         echo
     fi
 }
