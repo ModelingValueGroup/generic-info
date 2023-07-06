@@ -123,7 +123,7 @@ getVersion() {
     printf "[%s]='%s' " "$1" "$( if [[ ! -f gradle.properties ]]; then echo ''; else egrep '^version[ =]' gradle.properties | sed 's/.*= *//'; fi )"
 }
 getNumAhead() {
-    printf "[%s]='%s' " "$1" "$(git cherry | numLines)"
+    printf "[%s]='%s' " "$1" "$(if ! git cherry 1>&2 2>/dev/null; then echo "-"; else git cherry | numLines; fi)"
 }
 getNumBehind() {
     printf "[%s]='%s' " "$1" "$(git log HEAD..origin/${branchOf[$1]} --oneline | numLines)"
@@ -330,7 +330,7 @@ publishAll() {
         for f in \
                 "../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip" \
                 "../cdm/build/artifacts/CDM/CDM.zip" \
-                "../cdm-generator//build/artifacts/CdmGenerator/CdmGenerator.zip" \
+                "../cdm-generator//build/artifacts/cdm-generator/cdm-generator.zip" \
                 ; do
             if [[ -f "$f" ]]; then
                 cp "$f" ~/Downloads
