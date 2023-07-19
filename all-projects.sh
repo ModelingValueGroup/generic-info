@@ -120,13 +120,13 @@ getBranch() {
     printf "[%s]='%s' " "$1" "$(git rev-parse --abbrev-ref HEAD)"
 }
 getVersion() {
-    printf "[%s]='%s' " "$1" "$( if [[ ! -f gradle.properties ]]; then echo ''; else egrep '^version[ =]' gradle.properties | sed 's/.*= *//'; fi )"
+    printf "[%s]='%s' " "$1" "$(if [[ ! -f gradle.properties ]]; then echo ''; else egrep '^version[ =]' gradle.properties | sed 's/.*= *//'; fi)"
 }
 getNumAhead() {
-    printf "[%s]='%s' " "$1" "$(if ! git cherry 1>&2 2>/dev/null; then echo "-"; else git cherry | numLines; fi)"
+    printf "[%s]='%s' " "$1" "$(if ! git cherry &>/dev/null; then echo "-"; else git cherry | numLines; fi)"
 }
 getNumBehind() {
-    printf "[%s]='%s' " "$1" "$(git log HEAD..origin/${branchOf[$1]} --oneline | numLines)"
+    printf "[%s]='%s' " "$1" "$(if ! git log HEAD..origin/${branchOf[$1]} --oneline &>/dev/null; then echo "-"; else git log HEAD..origin/${branchOf[$1]} --oneline | numLines; fi)"
 }
 getNumDirty() {
     printf "[%s]='%s' " "$1" "$(git status --porcelain | numLines || :)"
