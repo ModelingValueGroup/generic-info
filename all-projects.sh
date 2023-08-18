@@ -18,7 +18,6 @@
 set -euo pipefail
 
 INTENDED_GRADLE_VERSION="7.6"
-INTENDED_JAVA_MAJOR_VERSION="11"
 repoSeq=(
     sync-proxy
     mvg-json
@@ -32,25 +31,51 @@ repoSeq=(
 )
 
 ###########################################################################################################################
-LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version'|| :)"
-JAVA_MAJOR_VERSION="$(java  -version 2>&1 | awk -F '"' '/version/ {gsub(/[.].*/,"");print $2}')"
 trap "onError" ERR
-checkIntendedJavaVersion() {
-    if [[ "$INTENDED_JAVA_MAJOR_VERSION" != "$JAVA_MAJOR_VERSION" ]]; then
+LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version'|| :)"
+getJavaProjectMajorVersion() {
+    local v=''
+    for repo in "${repoSeq[@]}"; do
+        local vv="$(egrep '^version_java[ =]' ../$repo/gradle.properties 2>/dev/null | sed 's/.*= *//')"
+        if [[ "$vv" != "" ]]; then
+            if [[ "$v" != "" ]]; then
+                if [[ "$v" != "$vv" ]]; then
+                    echo "ERROR: java versions do not match accross projects: $v and $vv found" 1>&2
+                    exit 88
+                fi
+            else
+                v="$vv"
+            fi
+        fi
+    done
+    if [[ "$v" == "" ]]; then
+        echo "ERROR: java version can not be determined" 1>&2
+        exit 89
+    fi
+    echo "$v"
+}
+getJavaActiveMajorVersion() {
+    java  -version 2>&1 \
+        | awk -F '"' '/version/ {gsub(/[.].*/,"");print $2}'
+}
+switchToCorrectJavaVersion() {
+    local projectVersion="$(getJavaProjectMajorVersion)"
+    local activeVersion="$(getJavaActiveMajorVersion)"
+    if [[ "$projectVersion" != "$activeVersion" ]]; then
         if [[ -x "/usr/libexec/java_home" ]]; then
-            local oldVersion="$JAVA_MAJOR_VERSION"
-            export JAVA_HOME=`/usr/libexec/java_home -v $INTENDED_JAVA_MAJOR_VERSION`
-            JAVA_MAJOR_VERSION="$(java  -version 2>&1 | awk -F '"' '/version/ {gsub(/[.].*/,"");print $2}')"
-            if [[ "$INTENDED_JAVA_MAJOR_VERSION" != "$JAVA_MAJOR_VERSION" ]]; then
-                echo "ERROR: can not select correct java version ($INTENDED_JAVA_MAJOR_VERSION) with /usr/libexec/java_home"
+            local oldVersion="$activeVersion"
+            export JAVA_HOME=`/usr/libexec/java_home -v $projectVersion`
+            v="$(getJavaActiveMajorVersion)"
+            if [[ "$projectVersion" != "$activeVersion" ]]; then
+                echo "ERROR: can not select correct java version ($projectVersion) with /usr/libexec/java_home"
                 exit 55
             fi
-            echo "INFO: switched java version from $oldVersion to $JAVA_MAJOR_VERSION"
+            echo "INFO: switched java version from $oldVersion to $activeVersion"
         else
-            echo "ERROR: incorrect java version active $JAVA_MAJOR_VERSION i.s.o. $INTENDED_JAVA_MAJOR_VERSION"
+            echo "ERROR: incorrect java version active $activeVersion i.s.o. $projectVersion"
         fi
     else
-        echo "INFO: correct java version installed: $INTENDED_JAVA_MAJOR_VERSION"
+        echo "INFO: correct java version installed: $projectVersion"
     fi
 }
 playSound() {
@@ -403,8 +428,6 @@ toDateAll() {
 }
 ###########################################################################################################################
 main() {
-    checkIntendedJavaVersion
-
     whattodo="$(askWhatToDo)"
 
     . ./info.sh
@@ -415,6 +438,8 @@ main() {
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
     cloneFetchAll
+
+    switchToCorrectJavaVersion
 
     if [[ $whattodo =~ [$doToDate] ]]; then
         toDateAll
