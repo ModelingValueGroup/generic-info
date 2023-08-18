@@ -55,7 +55,7 @@ getJavaProjectMajorVersion() {
     echo "$v"
 }
 getJavaActiveMajorVersion() {
-    java  -version 2>&1 \
+    java -version 2>&1 \
         | awk -F '"' '/version/ {gsub(/[.].*/,"");print $2}'
 }
 switchToCorrectJavaVersion() {
@@ -64,10 +64,10 @@ switchToCorrectJavaVersion() {
     if [[ "$projectVersion" != "$activeVersion" ]]; then
         if [[ -x "/usr/libexec/java_home" ]]; then
             local oldVersion="$activeVersion"
-            export JAVA_HOME=`/usr/libexec/java_home -v $projectVersion`
-            v="$(getJavaActiveMajorVersion)"
+            export JAVA_HOME="$(/usr/libexec/java_home -v $projectVersion)"
+            activeVersion="$(getJavaActiveMajorVersion)"
             if [[ "$projectVersion" != "$activeVersion" ]]; then
-                echo "ERROR: can not select correct java version ($projectVersion) with /usr/libexec/java_home"
+                echo "ERROR: can not select correct java version (need $projectVersion but active is $activeVersion, JAVA_HOME=$JAVA_HOME) with '/usr/libexec/java_home -v $projectVersion'"
                 exit 55
             fi
             echo "INFO: switched java version from $oldVersion to $activeVersion"
