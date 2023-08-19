@@ -119,7 +119,4 @@ ALLREP_TOKEN=<github-token>
   - ...and leave the projects build on your disk
 
 BTW: this method will only build the `develop` branch.
-
-[How to release](HOWTO-release-new-version.md)
-#include "include-method.md"
 EOF
