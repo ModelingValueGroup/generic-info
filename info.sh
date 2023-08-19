@@ -21,9 +21,6 @@ export MVG=ModelingValueGroup
 #   repo-name                       badge-workflow      badge-branch
 ###########################################################################################################################
 export repoListDclare=(
-    cdm                             build.yaml          develop
-    cdm-generator                   build.yaml          develop
-    cds-runtime                     build.yaml          develop
     dclareForMPS                    build.yaml          develop
     dclareForJava                   build.yaml          develop
     dclare                          build.yaml          develop
@@ -48,10 +45,16 @@ export repoListAux=(
     template-action                 build.yaml          master
     modelingvalue.nl                -                   master
 )
+export repoListCDM=(
+    cdm                             build.yaml          develop
+    cds-runtime                     build.yaml          develop
+    cdm-generator                   build.yaml          develop
+)
 export repoList=(
     "${repoListDclare[@]}"
     "${repoListExamples[@]}"
     "${repoListSupport[@]}"
     "${repoListAux[@]}"
+    "${repoListCDM[@]}"
 )
 ###########################################################################################################################

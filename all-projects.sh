@@ -25,8 +25,8 @@ repoSeq=(
     dclare
     dclareForJava
     dclareForMPS
-    cds-runtime
     cdm
+    cds-runtime
     cdm-generator
 )
 

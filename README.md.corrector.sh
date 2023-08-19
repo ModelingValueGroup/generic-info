@@ -94,6 +94,8 @@ $(gen ":two: **\`examples\`**"      "${repoListExamples[@]}")
 $(gen ":three: **\`support\`**"     "${repoListSupport[@]}")
 |            |              |        |         |
 $(gen ":four: **\`aux\`**"          "${repoListAux[@]}")
+|            |              |        |         |
+$(gen ":five: **\`CDM\`**"          "${repoListCDM[@]}")
 EOF
 cat <<"EOF"
 
