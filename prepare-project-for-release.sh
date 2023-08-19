@@ -23,10 +23,10 @@ repoSeq=(
     immutable-collections
     dclare
     dclareForMPS
-    cds-runtime
-    cdm
-    cdm-generator
     dclareForJava
+    cdm
+    cds-runtime
+    cdm-generator
 )
 
 main() {
