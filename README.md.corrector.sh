@@ -120,4 +120,6 @@ ALLREP_TOKEN=<github-token>
 
 BTW: this method will only build the `develop` branch.
 
+[How to release](HOWTO-release-new-version.md)
+#include "include-method.md"
 EOF
