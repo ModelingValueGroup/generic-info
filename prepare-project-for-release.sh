@@ -131,7 +131,7 @@ pushAll() {
             git add .
             git commit -m "prepare for release $VERSION"
             git push
-        )
+        ) || :
     done
 }
 

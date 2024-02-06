@@ -327,8 +327,19 @@ cleanAll() {
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
             if [[ -d build ]]; then
-                printf "\n\n!!!!!!!!!!!!!!! WARNING: build dir in $repo was not properly cleaned, deleting it now\n"
                 rm -rf build
+            fi
+            local ign="$(git status --ignored --untracked-files=all \
+                | egrep '^	' \
+                | fgrep -v '	modified:   ' \
+                | fgrep -v '.DS_Store'  \
+                | fgrep -v '	.idea'  \
+                | fgrep -v '	.mps'  \
+                | fgrep -v '	.gradle' \
+                || :)"
+            if [[ "$ign" != "" ]]; then
+                echo "================ ignored in $repo:"
+                echo "$ign"
             fi
         )
     done
