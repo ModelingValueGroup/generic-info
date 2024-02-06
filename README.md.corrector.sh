@@ -1,6 +1,6 @@
 #!/bin/bash
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## (C) Copyright 2018-2023 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
+## (C) Copyright 2018-2024 Modeling Value Group B.V. (http://modelingvalue.org)                                        ~
 ##                                                                                                                     ~
 ## Licensed under the GNU Lesser General Public License v3.0 (the 'License'). You may not use this file except in      ~
 ## compliance with the License. You may obtain a copy of the License at: https://choosealicense.com/licenses/lgpl-3.0  ~
@@ -9,9 +9,13 @@
 ## specific language governing permissions and limitations under the License.                                          ~
 ##                                                                                                                     ~
 ## Maintainers:                                                                                                        ~
-##     Wim Bast, Tom Brus, Ronald Krijgsheld                                                                           ~
+##     Wim Bast, Tom Brus                                                                                              ~
+##                                                                                                                     ~
 ## Contributors:                                                                                                       ~
-##     Arjan Kok, Carel Bast                                                                                           ~
+##     Ronald Krijgsheld ✝, Arjan Kok, Carel Bast                                                                      ~
+## In Memory of Ronald Krijgsheld, 1972 - 2023                                                                         ~
+##     Ronald was suddenly and unexpectedly taken from us. He was not only our long-term colleague and team member     ~
+##     but also our friend. "He will live on in many of the lines of code you see below."                              ~
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 set -euo pipefail
