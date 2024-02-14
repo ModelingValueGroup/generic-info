@@ -203,7 +203,7 @@ cloneFetch() {
                 git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
                 cp -R TMP_GIT/. .
                 rm -rf TMP_GIT
-                if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^develop$')" ]]; then
+                if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^d$')" ]]; then
                     git checkout develop
                 fi
             ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
