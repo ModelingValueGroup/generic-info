@@ -22,7 +22,7 @@
 #set -x
 set -euo pipefail
 
-INTENDED_GRADLE_VERSION="7.6"
+INTENDED_GRADLE_VERSION="8.7"
 repoSeq=(
     sync-proxy
     mvg-json
@@ -40,24 +40,21 @@ trap "onError" ERR
 LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json| jq -r '.finalReleases[0].version'|| :)"
 getJavaProjectMajorVersion() {
     local v=''
+    declare -A repo2version version2repo
     for repo in "${repoSeq[@]}"; do
-        local vv="$(egrep '^version_java[ =]' ../$repo/gradle.properties 2>/dev/null | sed 's/.*= *//')"
-        if [[ "$vv" != "" ]]; then
-            if [[ "$v" != "" ]]; then
-                if [[ "$v" != "$vv" ]]; then
-                    echo "ERROR: java versions do not match accross projects: $v and $vv found" 1>&2
-                    exit 88
-                fi
-            else
-                v="$vv"
-            fi
-        fi
+        v="$(egrep '^version_java[ =]' ../$repo/gradle.properties 2>/dev/null | sed 's/.*= *//')"
+        repo2version["$repo"]="$v"
+        version2repo["$v"]+="$repo"
     done
-    if [[ "$v" == "" ]]; then
-        echo "ERROR: java version can not be determined" 1>&2
-        exit 89
-    fi
-    echo "$v"
+    case "${#version2repo[@]}" in
+    0)  echo "ERROR: java version can not be determined" 1>&2;;
+    1)  echo "$v";;
+    *) 
+        echo "ERROR: java versions do not match accross projects:" 1>&2
+        for repo in "${repoSeq[@]}"; do
+            printf "   - %-24s: %s\n" "$repo" "${repo2version[$repo]}" 1>&2
+        done
+    esac
 }
 getJavaActiveMajorVersion() {
     java -version 2>&1 \
@@ -66,6 +63,9 @@ getJavaActiveMajorVersion() {
 switchToCorrectJavaVersion() {
     local projectVersion="$(getJavaProjectMajorVersion)"
     local activeVersion="$(getJavaActiveMajorVersion)"
+    if [[ "$projectVersion" == "" ]]; then
+        exit 89
+    fi
     if [[ "$projectVersion" != "$activeVersion" ]]; then
         if [[ -x "/usr/libexec/java_home" ]]; then
             local oldVersion="$activeVersion"
@@ -98,16 +98,16 @@ sec() {
     date +%s
 }
 
-        all=012345678
- doOverview=012345678
-   doGradle=_123456__
-     doPull=_12_456__
-    doClean=__234_6__
-  doPublish=___3456__
-     doTest=______6__
-      doLog=_______7_
-   doToDate=________8
-    doTimes=__23456__
+        all=012345678dt
+ doOverview=012345678__
+   doGradle=_123456____
+     doPull=_12_456____
+    doClean=__234_6____
+  doPublish=___3456____
+     doTest=______6____
+      doLog=_______7___
+   doToDate=________8__
+    doTimes=__23456____
 
 askWhatToDo() {
     REPLY="x"
@@ -123,6 +123,8 @@ askWhatToDo() {
     6 - pull clean build test
     7 - list recent commits on develop
     8 - move to a date, after reset & develop [CAUTION will trash any changes in workdir]
+    d - dev extra's
+    t -                  test
 
 EOF
         read -p "what to do? [0] " -n 1 -r
@@ -321,10 +323,11 @@ cleanAll() {
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
             printf ">>>>=========================== CLEAN  : %s ===========================\n" "$(basename "$(pwd)")"
-            ./gradlew clean
+            ./gradlew clean || :
             find . -type d -name classes_gen -exec rm -rf {} +
             find . -type d -name source_gen  -exec rm -rf {} +
             find . -type d -name source_gen.caches -exec rm -rf {} +
+            rm -rf build
             printf "<<<<=========================== CLEAN  : %s ===========================\n\n\n\n\n" "$(basename "$(pwd)")"
         )&
     done
@@ -388,9 +391,12 @@ testAll() {
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
             printf ">>>>=========================== TEST   : %s ===========================\n" "$(basename "$(pwd)")"
+            ./gradlew --status
+            ./gradlew --stop
+            ./gradlew --status
             ./gradlew test
             printf "<<<<=========================== TEST   : %s ===========================\n\n\n\n\n" "$(basename "$(pwd)")"
-        )&
+        ) #&
     done
     wait
     ls -l ../cdm/build/artifacts/CDM/CDM.zip ../dclareForMPS/build/artifacts/DclareForMPS/DclareForMPS.zip
@@ -484,7 +490,7 @@ main() {
         publishAll
         local p1="$(sec)"
     fi
-    if [[ $whattodo =~ [$doTest] ]]; then
+    if [[ $whattodo =~ [$doTest] ]] || [[ $whattodo == t ]]; then
         local t0="$(sec)"
         testAll
         local t1="$(sec)"
@@ -507,6 +513,10 @@ main() {
     if [[ $whattodo =~ [$doLog] ]]; then
         printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ SCANNING GIT LOGS...\n"
         logAll
+    fi
+    if [[ $whattodo == d ]]; then
+        printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DEV EXTRAS...\n"
+        printf "for repo in %s; do (cd \"../\$repo\";echo \"====== \$repo\"); done\n" "${repoSeq[*]}"
     fi
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DONE\n"
 }
