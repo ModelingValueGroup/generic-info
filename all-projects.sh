@@ -37,8 +37,13 @@ repoSeq=(
 
 ###########################################################################################################################
 if ((BASH_VERSINFO[0] < 4)); then
-  echo "ERROR: bash 4.0 or newer is required"
-  exit 1
+    OTHER_BASH='/opt/local/bin/bash'
+    if [[ -x "$OTHER_BASH" ]] && (( $("$OTHER_BASH" <<<'echo $BASH_VERSION'|sed 's/[.].*//') >= 4 )); then
+        echo "INFO: restarting with "$OTHER_BASH" because this bash is too old but that one is new enough."
+        exec "$OTHER_BASH" "$0" "$@"
+    fi
+    echo "ERROR: bash 4.0 or newer is required"
+    exit 1
 fi
 
 trap "onError" ERR
