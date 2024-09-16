@@ -207,17 +207,22 @@ cloneFetch() {
         if [[ ! -d ".git" ]]; then
             printf "cloning %s...\n" "$repo"
             (
-                git clone "https://github.com/ModelingValueGroup/$repo.git" TMP_GIT 2>&1 >/dev/null
-                cp -R TMP_GIT/. .
-                rm -rf TMP_GIT
-                if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^d$')" ]]; then
-                    git checkout develop
+                GIT_SSH_COMMAND='ssh -oBatchMode=yes' git clone git@github.com/ModelingValueGroup/$repo.git TMP_GIT 2>&1 >/dev/null
+                if (($? == 0)) then
+                    cp -R TMP_GIT/. .
+                    rm -rf TMP_GIT
+                    if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^d$')" ]]; then
+                        git checkout develop
+                    fi
                 fi
             ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
         fi
-        git fetch --progress --prune --all >/dev/null 2>&1
-
-        echo "# done: $repo" 1>&2
+        if [[ ! -d ".git" ]]; then
+            echo "# not available: $repo" 1>&2
+        else
+            git fetch --progress --prune --all >/dev/null 2>&1
+            echo "# done: $repo" 1>&2
+        fi
     )&
 }
 pullAll() {
