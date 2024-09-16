@@ -53,12 +53,14 @@ getJavaProjectMajorVersion() {
     declare -A repo2version version2repo
     for repo in "${repoSeq[@]}"; do
         v="$(egrep '^version_java[ =]' ../$repo/gradle.properties 2>/dev/null | sed 's/.*= *//')"
-        repo2version["$repo"]="$v"
-        version2repo["$v"]+="$repo"
+        if [[ "$v" != "" ]]; then
+            repo2version["$repo"]="$v"
+            version2repo["$v"]+="$repo"
+        fi
     done
     case "${#version2repo[@]}" in
     0)  echo "ERROR: java version can not be determined" 1>&2;;
-    1)  echo "$v";;
+    1)  echo "${!version2repo[@]}";;
     *) 
         echo "ERROR: java versions do not match accross projects:" 1>&2
         for repo in "${repoSeq[@]}"; do
@@ -205,6 +207,15 @@ cloneFetchAll() {
     echo
     echo "############################################ clone/fetch..."
     forAllProjects cloneFetch
+
+	# filter out all projects that could not be cloned (probably private):
+    local copy=()
+    for repo in "${repoName[@]}"; do
+        if [[ -d ../$repo/.git ]]; then
+		    copy+=($repo)
+	    fi
+    done
+	repoName=(${copy[@]})
 }
 cloneFetch() {
     local repo="$1"; shift
@@ -242,7 +253,7 @@ pull() {
 projectInfoSeparator() {
     local repo="${1:-}"
 
-    if [[ "$repo" == "" ]] || [[ "$repo" == cdm-generator ]] || [[ "$repo" == ex-Sudoku ]]; then
+    if [[ "$repo" == "" ]] || [[ "$repo" == dclareForMPS ]] || [[ "$repo" == cdm-generator ]] || [[ "$repo" == ex-Sudoku ]]; then
         printf "$INFO_FORMAT +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     fi
 }
@@ -291,7 +302,7 @@ showUnrelated() {
             if [[ -d ../$repo/.git ]]; then
                 projectInfo $repo
             else
-                echo "$repo: NO GIT PROJECT"
+                printf "   %-30s NO GIT PROJECT\n" "$repo"
             fi
         fi
     done
