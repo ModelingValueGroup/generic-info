@@ -210,17 +210,15 @@ cloneFetch() {
     local repo="$1"; shift
     (
         if [[ ! -d ".git" ]]; then
-            printf "cloning %s...\n" "$repo"
-            (
-                GIT_SSH_COMMAND='ssh -oBatchMode=yes' git clone git@github.com/ModelingValueGroup/$repo.git TMP_GIT 2>&1 >/dev/null
-                if (($? == 0)) then
-                    cp -R TMP_GIT/. .
-                    rm -rf TMP_GIT
-                    if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^d$')" ]]; then
-                        git checkout develop
-                    fi
+            printf "# cloning %s...\n" "$repo"
+            GIT_SSH_COMMAND='ssh -oBatchMode=yes' git clone git@github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
+            if [[ -d ".git" ]]; then
+                cp -R TMP_GIT/. .
+                rm -rf TMP_GIT
+                if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^d$')" ]]; then
+                    git checkout develop >/dev/null 2>&1 || :
                 fi
-            ) 2>&1 | sed 's/^/                                    # /' # 2>&1 >/dev/null
+            fi
         fi
         if [[ ! -d ".git" ]]; then
             echo "# not available: $repo" 1>&2
