@@ -36,6 +36,11 @@ repoSeq=(
 )
 
 ###########################################################################################################################
+if ((BASH_VERSINFO[0] < 4)); then
+  echo "ERROR: bash 4.0 or newer is required"
+  exit 1
+fi
+
 trap "onError" ERR
 LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json | sed -n '1,/finalReleases/d;/version/p' | head -1 | sed 's/.*: "//;s/".*//' || :)"
 getJavaProjectMajorVersion() {
