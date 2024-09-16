@@ -210,12 +210,20 @@ cloneFetchAll() {
 
 	# filter out all projects that could not be cloned (probably private):
     local copy=()
+    for repo in "${repoSeq[@]}"; do
+        if [[ -d ../$repo/.git ]]; then
+            copy+=($repo)
+        fi
+    done
+    repoSeq=(${copy[@]})
+
+    local copy=()
     for repo in "${repoName[@]}"; do
         if [[ -d ../$repo/.git ]]; then
-		    copy+=($repo)
-	    fi
+            copy+=($repo)
+        fi
     done
-	repoName=(${copy[@]})
+    repoName=(${copy[@]})
 }
 cloneFetch() {
     local repo="$1"; shift
