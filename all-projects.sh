@@ -412,7 +412,7 @@ publishAll() {
                 cp "$f" ~/Downloads
                 echo "   - $(basename "$f")"
             else
-                echo "   - ERROR: missing plugin file: $f"
+                echo "   - no plugin file at: $f"
             fi
         done
         echo
