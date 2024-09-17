@@ -229,7 +229,7 @@ cloneFetch() {
     local repo="$1"; shift
     (
         if [[ ! -d ".git" ]]; then
-            printf "# %-20s - cloning...\n" "$repo"
+            printf "# %-30s - cloning...\n" "$repo"
             GIT_TERMINAL_PROMPT=0 git clone https://github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
             if [[ -d ".git" ]]; then
                 cp -R TMP_GIT/. .
@@ -240,10 +240,10 @@ cloneFetch() {
             fi
         fi
         if [[ ! -d ".git" ]]; then
-            printf "# %-20s - not available\n" "$repo" 1>&2
+            printf "# %-30s - not available\n" "$repo" 1>&2
         else
             git fetch --progress --prune --all >/dev/null 2>&1
-            printf "# %-20s - done\n" "$repo" 1>&2
+            printf "# %-30s - done\n" "$repo" 1>&2
         fi
     )&
 }
