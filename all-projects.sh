@@ -230,7 +230,7 @@ cloneFetch() {
     (
         if [[ ! -d ".git" ]]; then
             printf "# %-20s - cloning...\n" "$repo"
-            GIT_SSH_COMMAND='ssh -oBatchMode=yes' git clone git@github.com:ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
+            GIT_TERMINAL_PROMPT=0 git clone https://github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
             if [[ -d ".git" ]]; then
                 cp -R TMP_GIT/. .
                 rm -rf TMP_GIT
