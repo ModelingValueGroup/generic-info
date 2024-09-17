@@ -229,8 +229,9 @@ cloneFetch() {
     local repo="$1"; shift
     (
         if [[ ! -d ".git" ]]; then
-            printf "# cloning %s...\n" "$repo"
-            GIT_SSH_COMMAND='ssh -oBatchMode=yes' git clone git@github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
+            printf "# %-20s - cloning...\n" "$repo"
+            #GIT_SSH_COMMAND='ssh -oBatchMode=yes' git clone git@github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
+            GIT_SSH_COMMAND='ssh -oBatchMode=yes' git clone git@github.com/ModelingValueGroup/$repo.git TMP_GIT || :
             if [[ -d ".git" ]]; then
                 cp -R TMP_GIT/. .
                 rm -rf TMP_GIT
@@ -240,12 +241,12 @@ cloneFetch() {
             fi
         fi
         if [[ ! -d ".git" ]]; then
-            echo "# not available: $repo" 1>&2
+            printf "# %-20s - not available\n" "$repo" 1>&2
         else
             git fetch --progress --prune --all >/dev/null 2>&1
-            echo "# done: $repo" 1>&2
+            printf "# %-20s - done\n" "$repo" 1>&2
         fi
-    )&
+    ) #&
 }
 pullAll() {
     echo
