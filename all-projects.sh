@@ -230,11 +230,13 @@ cloneFetch() {
     (
         if [[ ! -d ".git" ]]; then
             printf "# %-30s - cloning...\n" "$repo"
+            rm -rf TMP_GIT
             GIT_TERMINAL_PROMPT=0 git clone https://github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
-            if [[ -d ".git" ]]; then
+            if [[ -d "TMP_GIT/.git" ]]; then
                 cp -R TMP_GIT/. .
                 rm -rf TMP_GIT
                 if [[ "$(listRemoteBranches | tr ' ' '\n' | egrep '^d$')" ]]; then
+                    printf "# %-30s - switching to develop branch...\n" "$repo" 1>&2
                     git checkout develop >/dev/null 2>&1 || :
                 fi
             fi
