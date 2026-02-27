@@ -22,7 +22,9 @@
 #set -x
 set -euo pipefail
 
-INTENDED_GRADLE_VERSION="8.7"
+INTENDED_PROJECT_VERSION="5.1.0"
+ INTENDED_GRADLE_VERSION="9.3.1"
+   INTENDED_JAVA_VERSION="21"
 repoSeq=(
     sync-proxy
     mvg-json
@@ -47,7 +49,7 @@ if ((BASH_VERSINFO[0] < 4)); then
 fi
 
 trap "onError" ERR
-LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json | sed -n '1,/finalReleases/d;/version/p' | head -1 | sed 's/.*: "//;s/".*//' || :)"
+
 getJavaProjectMajorVersion() {
     local v=''
     declare -A repo2version version2repo
@@ -74,7 +76,7 @@ getJavaActiveMajorVersion() {
 }
 switchToCorrectJavaVersion() {
     local projectVersion="$(getJavaProjectMajorVersion)"
-    local activeVersion="$(getJavaActiveMajorVersion)"
+    local  activeVersion="$(getJavaActiveMajorVersion)"
     if [[ "$projectVersion" == "" ]]; then
         exit 89
     fi
@@ -110,16 +112,18 @@ sec() {
     date +%s
 }
 
-        all=012345678dt
- doOverview=012345678__
-   doGradle=_123456____
-     doPull=_12_456____
-    doClean=__234_6____
-  doPublish=___3456____
-     doTest=______6____
-      doLog=_______7___
-   doToDate=________8__
-    doTimes=__23456____
+             all=012345678dtv
+      doOverview=012345678__v
+ doGradleVersion=_123456____v
+   doJavaVersion=_123456____v
+doProjectVersion=_123456____v
+          doPull=_12_456_____
+         doClean=__234_6_____
+       doPublish=___3456_____
+          doTest=______6_____
+           doLog=_______7____
+        doToDate=________8___
+         doTimes=__23456_____
 
 askWhatToDo() {
     REPLY="x"
@@ -137,6 +141,7 @@ askWhatToDo() {
     8 - move to a date, after reset & develop [CAUTION will trash any changes in workdir]
     d - dev extra's
     t -                  test
+    v - check and update versions
 
 EOF
         read -p "what to do? [0] " -n 1 -r
@@ -200,6 +205,24 @@ listDependabotBranches() {
 
     if [[ "$rst" != "" ]]; then
         printf "%s " $rst
+    fi
+}
+getProperty() {
+    local file="$1"; shift
+    local  key="$1"; shift
+    touch "$file"
+    sed -n "s/^${key} *= *//p" "$file"
+}
+setProperty() {
+    local  file="$1"; shift
+    local   key="$1"; shift
+    local value="$1"; shift
+    touch "$file"
+    if grep -q "^${key} *= *" "$file" 2>/dev/null; then
+        sed -i.bak -e "s|^\(${key} *= *\).*|\1${value}|" "$file"
+        rm -f "$file.bak"
+    else
+        echo "${key}=${value}" >> "$file"
     fi
 }
 ###########################################################################################################################
@@ -317,10 +340,53 @@ showUnrelated() {
         fi
     done
 }
+upgradeProjectAll() {
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE PROJECT CHECK\n"
+    printf "  requested project version = %s\n" "$INTENDED_PROJECT_VERSION"
+    anyUpgraded=0
+    forAllProjects upgradeProject
+    if [[ $anyUpgraded == 0 ]]; then
+        echo "  ok: all projects use the requested project version"
+    fi
+}
+upgradeProject() {
+    local propFile="gradle.properties"
+    local      key="version"
+    if [[ -f "$propFile" ]]; then
+        PROJECT_PROJECT_VERSION="$(getProperty "$propFile" "$key")"
+        if [[ "$PROJECT_PROJECT_VERSION" != "" && "$PROJECT_PROJECT_VERSION" != $INTENDED_PROJECT_VERSION ]]; then
+            echo "  upgrading project: $PROJECT_PROJECT_VERSION => $INTENDED_PROJECT_VERSION: for project $1"
+            setProperty "$propFile" "$key" "$INTENDED_PROJECT_VERSION"
+            anyUpgraded=1
+        fi
+    fi
+}
+upgradeJavaAll() {
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE JAVA CHECK\n"
+    printf "  requested java    version = %s\n" "$INTENDED_JAVA_VERSION"
+    anyUpgraded=0
+    forAllProjects upgradeJava
+    if [[ $anyUpgraded == 0 ]]; then
+        echo "  ok: all projects use the requested java version"
+    fi
+}
+upgradeJava() {
+    local propFile="gradle.properties"
+    local      key="version_java"
+    if [[ -f "$propFile" ]]; then
+        PROJECT_JAVA_VERSION="$(getProperty "$propFile" "$key")"
+        if [[ "$PROJECT_JAVA_VERSION" != "" && "$PROJECT_JAVA_VERSION" != $INTENDED_JAVA_VERSION ]]; then
+            echo "  upgrading java: $PROJECT_JAVA_VERSION => $INTENDED_JAVA_VERSION: for project $1"
+            setProperty "$propFile" "$key" "$INTENDED_JAVA_VERSION"
+            anyUpgraded=1
+        fi
+    fi
+}
 upgradeGradleAll() {
+    LATEST_GRADLE_VERSION="$(curl --silent https://raw.githubusercontent.com/gradle/gradle/master/released-versions.json | sed -n '1,/finalReleases/d;/version/p' | head -1 | sed 's/.*: "//;s/".*//' || :)"
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE GRADLE CHECK\n"
-    printf "  latest    gradle version = %s\n" "$LATEST_GRADLE_VERSION"
-    printf "  requested gradle version = %s\n" "$INTENDED_GRADLE_VERSION"
+    printf "  requested gradle  version = %s\n" "$INTENDED_GRADLE_VERSION"
+    printf "  latest    gradle  version = %s\n" "$LATEST_GRADLE_VERSION"
     anyUpgraded=0
     forAllProjects upgradeGradle
     if [[ $anyUpgraded == 0 ]]; then
@@ -334,9 +400,6 @@ upgradeGradle() {
             echo "  upgrading gradle: $PROJECT_GRADLE_VERSION => $INTENDED_GRADLE_VERSION: for project $1"
             ./gradlew wrapper --gradle-version $INTENDED_GRADLE_VERSION
             anyUpgraded=1
-        #elif [[ $LATEST_GRADLE_VERSION != $INTENDED_GRADLE_VERSION ]]; then
-            #echo "  scanning gradle for upgrade: $PROJECT_GRADLE_VERSION => $LATEST_GRADLE_VERSION: for project $1"
-            #./gradlew help --scan
         fi
     fi
 }
@@ -391,8 +454,8 @@ publishAll() {
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
             printf ">>>>=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
-            if [[ -f bootstrap.gradle.kts ]]; then
-                ./gradlew --build-file bootstrap.gradle.kts
+            if [[ -f mps_build.xml ]]; then
+                ./gradlew download-MPS
             fi
             ./gradlew publish
             for d in $(find * -name '*.kts' -exec egrep -q "register.*gatherRuntimeJars" {} \; -print | sed 's|/[^/]*$||'); do
@@ -495,8 +558,6 @@ main() {
 
     cloneFetchAll
 
-    switchToCorrectJavaVersion
-
     if [[ $whattodo =~ [$doToDate] ]]; then
         toDateAll
     fi
@@ -509,9 +570,17 @@ main() {
         projectInfoAll
     fi
 
-    if [[ $whattodo =~ [$doGradle] ]]; then
+    if [[ $whattodo =~ [$doJavaVersion] ]]; then
+        upgradeJavaAll
+    fi
+    if [[ $whattodo =~ [$doGradleVersion] ]]; then
         upgradeGradleAll
     fi
+    if [[ $whattodo =~ [$doProjectVersion] ]]; then
+        upgradeProjectAll
+    fi
+
+    switchToCorrectJavaVersion
 
     local T0="$(sec)"
     if [[ $whattodo =~ [$doClean] ]]; then

@@ -41,9 +41,6 @@ export repoListExamples=(
 )
 export repoListSupport=(
     generic-info                    build.yaml          master
-    gradlePlugins                   build.yaml          develop
-    upload-maven-package-action     test.yaml           master
-    upload-jetbrains-plugin-action  test.yaml           master
 )
 export repoListAux=(
     template-java                   build.yaml          master
