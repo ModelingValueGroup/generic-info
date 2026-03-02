@@ -29,9 +29,3 @@
 
 rootProject.name = "generic-info"
 
-pluginManagement {
-    repositories {
-        maven { url = uri("https://modelingvaluegroup.github.io/gradlePlugins/") }
-        gradlePluginPortal()
-    }
-}
