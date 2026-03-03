@@ -343,10 +343,12 @@ showUnrelated() {
 upgradeProjectAll() {
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE PROJECT CHECK\n"
     printf "  requested project version = %s\n" "$INTENDED_PROJECT_VERSION"
-    anyUpgraded=0
+    numUpgraded=0
     forAllProjects upgradeProject
-    if [[ $anyUpgraded == 0 ]]; then
-        echo "  ok: all projects use the requested project version"
+    if [[ $numUpgraded == 0 ]]; then
+        echo "  ok: all projects were already using the requested project version"
+    else
+        echo "  ok: all projects are now using the requested project version ($numUpgraded upgraded)"
     fi
 }
 upgradeProject() {
@@ -357,17 +359,19 @@ upgradeProject() {
         if [[ "$PROJECT_PROJECT_VERSION" != "" && "$PROJECT_PROJECT_VERSION" != $INTENDED_PROJECT_VERSION ]]; then
             echo "  upgrading project: $PROJECT_PROJECT_VERSION => $INTENDED_PROJECT_VERSION: for project $1"
             setProperty "$propFile" "$key" "$INTENDED_PROJECT_VERSION"
-            anyUpgraded=1
+            ((numUpgraded++))
         fi
     fi
 }
 upgradeJavaAll() {
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE JAVA CHECK\n"
     printf "  requested java    version = %s\n" "$INTENDED_JAVA_VERSION"
-    anyUpgraded=0
+    numUpgraded=0
     forAllProjects upgradeJava
-    if [[ $anyUpgraded == 0 ]]; then
-        echo "  ok: all projects use the requested java version"
+    if [[ $numUpgraded == 0 ]]; then
+        echo "  ok: all projects were already using the requested java version"
+    else
+        echo "  ok: all projects are now using the requested java version ($numUpgraded upgraded)"
     fi
 }
 upgradeJava() {
@@ -378,7 +382,7 @@ upgradeJava() {
         if [[ "$PROJECT_JAVA_VERSION" != "" && "$PROJECT_JAVA_VERSION" != $INTENDED_JAVA_VERSION ]]; then
             echo "  upgrading java: $PROJECT_JAVA_VERSION => $INTENDED_JAVA_VERSION: for project $1"
             setProperty "$propFile" "$key" "$INTENDED_JAVA_VERSION"
-            anyUpgraded=1
+            ((numUpgraded++))
         fi
     fi
 }
@@ -387,19 +391,21 @@ upgradeGradleAll() {
     printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ UPGRADE GRADLE CHECK\n"
     printf "  requested gradle  version = %s\n" "$INTENDED_GRADLE_VERSION"
     printf "  latest    gradle  version = %s\n" "$LATEST_GRADLE_VERSION"
-    anyUpgraded=0
+    numUpgraded=0
     forAllProjects upgradeGradle
-    if [[ $anyUpgraded == 0 ]]; then
-        echo "  ok: all projects use the requested gradle version"
+    if [[ $numUpgraded == 0 ]]; then
+        echo "  ok: all projects were already using the requested gradle version"
+    else
+        echo "  ok: all projects are now using the requested gradle version ($numUpgraded upgraded)"
     fi
 }
 upgradeGradle() {
     if [[ -f gradlew ]]; then
-        PROJECT_GRADLE_VERSION="$(./gradlew --version 2>&1 | egrep '^Gradle' | sed 's/.* //' || echo "unknown")"
-        if [[ "$PROJECT_GRADLE_VERSION" != $INTENDED_GRADLE_VERSION ]]; then
-            echo "  upgrading gradle: $PROJECT_GRADLE_VERSION => $INTENDED_GRADLE_VERSION: for project $1"
-            ./gradlew wrapper --gradle-version $INTENDED_GRADLE_VERSION
-            anyUpgraded=1
+        local preCrc="$(cat gradlew gradlew.bat gradle/wrapper/gradle-wrapper.jar gradle/wrapper/gradle-wrapper.properties | cksum)"
+        ./gradlew wrapper --gradle-version $INTENDED_GRADLE_VERSION
+        local pstCrc="$(cat gradlew gradlew.bat gradle/wrapper/gradle-wrapper.jar gradle/wrapper/gradle-wrapper.properties | cksum)"
+        if [[ "$preCrc" != "$pstCrc" ]]; then
+            ((numUpgraded++)) || :
         fi
     fi
 }
