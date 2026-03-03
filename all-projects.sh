@@ -420,6 +420,7 @@ cleanAll() {
     for repo in "${repoSeq[@]}"; do
         (   cd ../$repo
             printf ">>>>=========================== CLEAN  : %s ===========================\n" "$(basename "$(pwd)")"
+            printf "    _-_-_ (cd %s; ./gradlew clean)\n" "$(pwd)"
             ./gradlew clean || :
             find . -type d -name classes_gen -exec rm -rf {} +
             find . -type d -name source_gen  -exec rm -rf {} +
@@ -455,13 +456,11 @@ publishAll() {
         (   cd ../$repo
             printf ">>>>=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
             if [[ -f mps_build.xml ]]; then
+                printf "    _-_-_ (cd %s; ./gradlew download-MPS)\n" "$(pwd)"
                 ./gradlew download-MPS
             fi
+            printf "    _-_-_ (cd %s; ./gradlew publish)\n" "$(pwd)"
             ./gradlew publish
-            for d in $(find * -name '*.kts' -exec egrep -q "register.*gatherRuntimeJars" {} \; -print | sed 's|/[^/]*$||'); do
-                printf "    =========================== GATHER: %s ==========================\n" "$d:gatherRuntimeJars"
-                ./gradlew ${d/*.kts/}:gatherRuntimeJars
-            done
             printf "<<<<=========================== PUBLISH: %s ===========================\n" "$(basename "$(pwd)")"
         )
     done
