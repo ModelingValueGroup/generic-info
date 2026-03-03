@@ -93,8 +93,6 @@ switchToCorrectJavaVersion() {
         else
             echo "ERROR: incorrect java version active $activeVersion i.s.o. $projectVersion"
         fi
-    else
-        echo "INFO: correct java version installed: $projectVersion"
     fi
 }
 playSound() {
@@ -228,7 +226,7 @@ setProperty() {
 ###########################################################################################################################
 cloneFetchAll() {
     echo
-    echo "############################################ clone/fetch..."
+    printf "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ clone/fetch\n"
     forAllProjects cloneFetch
 
 	# filter out all projects that could not be cloned (probably private):
