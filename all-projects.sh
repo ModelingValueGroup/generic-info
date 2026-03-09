@@ -483,6 +483,9 @@ publishAll() {
                 echo "   - no plugin file at: $f"
             fi
         done
+        local allZip=~/Downloads/"cdm-all-$(date '+%Y%m%d-%H%M').zip"
+        zip -j "$allZip" ~/Downloads/DclareForMPS.zip ~/Downloads/CDM.zip ~/Downloads/cdm-generator.zip
+        echo "   => $allZip"
         echo
     fi
 }
