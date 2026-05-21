@@ -2,7 +2,7 @@
 
 This is primarily for the maintainers of the MVG projects.
 
-Here we decsibe how to release a new version of our project-train.
+Here we describe how to release a new version of our project-train.
 
 - [ ] create a local copy of the `develop` branch of all the projects in the project-train. You can do this with the
   following command:
@@ -24,7 +24,7 @@ Here we decsibe how to release a new version of our project-train.
     - [ ] enter the version number for the new release
     - [ ] double check that all projects contain the right version number and reference the right version number
     - [ ] answer 'yes' if everything looks good
-    - [ ] this will commit and push all version nembers in all projects
+    - [ ] this will commit and push all version numbers in all projects
 
 - [ ] manually merge `develop` into `master` in all projects in the right order while monitoring the builds under
   github-actions. For every project make a _pull request_ called "`new release`" and merge it. The _right order_ is:
