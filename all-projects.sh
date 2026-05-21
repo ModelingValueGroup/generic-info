@@ -284,7 +284,7 @@ pull() {
 projectInfoSeparator() {
     local repo="${1:-}"
 
-    if [[ "$repo" == "" ]] || [[ "$repo" == dclareForMPS ]] || [[ "$repo" == cdm-generator ]] || [[ "$repo" == ex-Sudoku ]]; then
+    if [[ "$repo" == "" ]] || [[ "$repo" == dclareForMPS ]] || [[ "$repo" == cdm-generator ]]; then
         printf "$INFO_FORMAT +\n" "+" "+" "+" "+" "+" "+" "+" "+" "+" | sed 's/ /-/g;s/^.../  /'
     fi
 }

@@ -33,30 +33,22 @@ export repoListDclare=(
     mvg-json                        build.yaml          develop
     sync-proxy                      build.yaml          develop
 )
-export repoListExamples=(
-    ex-FlattenAndCopy               -                   master
-    ex-NiamToOO                     -                   master
-    ex-EntityClassJava              -                   master
-    ex-Sudoku                       -                   master
-)
 export repoListSupport=(
     generic-info                    build.yaml          master
-)
-export repoListAux=(
-    template-java                   build.yaml          master
-    template-action                 build.yaml          master
-    modelingvalue.nl                -                   master
 )
 export repoListCDM=(
     cdm                             build.yaml          develop
     cds-runtime                     build.yaml          develop
     cdm-generator                   build.yaml          develop
 )
+export repoListExtras=(
+    dclareForMPS.wiki               -                   master
+    OrderCdmExample                 -                   master
+)
 export repoList=(
     "${repoListDclare[@]}"
-    "${repoListExamples[@]}"
     "${repoListSupport[@]}"
-    "${repoListAux[@]}"
     "${repoListCDM[@]}"
+    "${repoListExtras[@]}"
 )
 ###########################################################################################################################

@@ -94,13 +94,9 @@ cat <<EOF
 |------------|--------------|--------|---------|
 $(gen ":one: **\`dclare\`**"        "${repoListDclare[@]}")
 |            |              |        |         |
-$(gen ":two: **\`examples\`**"      "${repoListExamples[@]}")
+$(gen ":two: **\`support\`**"       "${repoListSupport[@]}")
 |            |              |        |         |
-$(gen ":three: **\`support\`**"     "${repoListSupport[@]}")
-|            |              |        |         |
-$(gen ":four: **\`aux\`**"          "${repoListAux[@]}")
-|            |              |        |         |
-$(gen ":five: **\`CDM\`**"          "${repoListCDM[@]}")
+$(gen ":three: **\`CDM\`**"         "${repoListCDM[@]}")
 EOF
 cat <<"EOF"
 
