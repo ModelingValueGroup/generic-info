@@ -305,8 +305,11 @@ projectInfoAll() {
     projectInfoSeparator
     forAllProjects projectInfo
     projectInfoSeparator
-    showUnrelated
-    projectInfoSeparator
+    local unrelated="$(showUnrelated)"
+    if [[ -n "$unrelated" ]]; then
+        echo "$unrelated"
+        projectInfoSeparator
+    fi
     echo
 }
 projectInfo() {
