@@ -252,7 +252,9 @@ cloneFetch() {
         if [[ ! -d ".git" ]]; then
             printf "# %-30s - cloning...\n" "$repo"
             rm -rf TMP_GIT
-            GIT_TERMINAL_PROMPT=0 git clone https://github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
+            GIT_TERMINAL_PROMPT=0 git clone https://github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 \
+                || GIT_TERMINAL_PROMPT=0 git clone git@github.com:ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 \
+                || :
             if [[ -d "TMP_GIT/.git" ]]; then
                 cp -R TMP_GIT/. .
                 rm -rf TMP_GIT
