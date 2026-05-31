@@ -232,7 +232,7 @@ cloneFetchAll() {
 	# filter out all projects that could not be cloned (probably private):
     local copy=()
     for repo in "${repoSeq[@]}"; do
-        if [[ -d ../$repo/.git ]]; then
+        if [[ -e ../$repo/.git ]]; then
             copy+=($repo)
         fi
     done
@@ -240,7 +240,7 @@ cloneFetchAll() {
 
     local copy=()
     for repo in "${repoName[@]}"; do
-        if [[ -d ../$repo/.git ]]; then
+        if [[ -e ../$repo/.git ]]; then
             copy+=($repo)
         fi
     done
@@ -249,7 +249,7 @@ cloneFetchAll() {
 cloneFetch() {
     local repo="$1"; shift
     (
-        if [[ ! -d ".git" ]]; then
+        if [[ ! -e ".git" ]]; then
             printf "# %-30s - cloning...\n" "$repo"
             rm -rf TMP_GIT
             GIT_TERMINAL_PROMPT=0 git clone https://github.com/ModelingValueGroup/$repo.git TMP_GIT >/dev/null 2>&1 || :
@@ -262,7 +262,7 @@ cloneFetch() {
                 fi
             fi
         fi
-        if [[ ! -d ".git" ]]; then
+        if [[ ! -e ".git" ]]; then
             printf "# %-30s - not available\n" "$repo" 1>&2
         else
             git fetch --progress --prune --all >/dev/null 2>&1
@@ -333,7 +333,7 @@ projectInfo() {
 showUnrelated() {
     for repo in $(cd ..; eval "ls $(printf " | fgrep -v '%s'" ${repoName[@]})"); do
         if [[ -d ../$repo ]]; then
-            if [[ -d ../$repo/.git ]]; then
+            if [[ -e ../$repo/.git ]]; then
                 projectInfo $repo
             else
                 printf "   %-30s NO GIT PROJECT\n" "$repo"
