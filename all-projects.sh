@@ -96,6 +96,7 @@ switchToCorrectJavaVersion() {
     fi
 }
 playSound() {
+    command -v afplay >/dev/null 2>&1 || return 0   # no-op off macOS (e.g. CI)
     afplay "done.wav" & sleep 0.3
     afplay "done.wav" & sleep 0.3
     afplay "done.wav" & sleep 0.3
@@ -110,18 +111,21 @@ sec() {
     date +%s
 }
 
-             all=012345678dtv
-      doOverview=012345678__v
- doGradleVersion=_123456____v
-   doJavaVersion=_123456____v
-doProjectVersion=_123456____v
-          doPull=_12_456_____
-         doClean=__234_6_____
-       doPublish=___3456_____
-          doTest=______6_____
-           doLog=_______7____
-        doToDate=________8___
-         doTimes=__23456_____
+# option 'c' = CI build: clean+build like option 4 but with NO git actions
+# (no cloneFetch, no pull). Meant to be run non-interactively (stdin 'c') after
+# the caller has already put the repos on the wanted branch. See main().
+             all=012345678dtvc
+      doOverview=012345678__v_
+ doGradleVersion=_123456____v_
+   doJavaVersion=_123456____v_
+doProjectVersion=_123456____v_
+          doPull=_12_456______
+         doClean=__234_6_____c
+       doPublish=___3456_____c
+          doTest=______6______
+           doLog=_______7_____
+        doToDate=________8____
+         doTimes=__23456_____c
 
 askWhatToDo() {
     REPLY="x"
@@ -140,6 +144,7 @@ askWhatToDo() {
     d - dev extra's
     t -                  test
     v - check and update versions
+    c -      clean build, no git actions (for CI; run non-interactively)
 
 EOF
         read -p "what to do? [0] " -n 1 -r
@@ -567,7 +572,9 @@ main() {
     eval   "workflowOf=( $(printf "[%s]=%s%.s " "${repoList[@]}") )"
     eval "mainBranchOf=( $(printf "[%s]=%.s%s " "${repoList[@]}") )"
 
-    cloneFetchAll
+    if [[ "$whattodo" != c ]]; then
+        cloneFetchAll
+    fi
 
     if [[ $whattodo =~ [$doToDate] ]]; then
         toDateAll
